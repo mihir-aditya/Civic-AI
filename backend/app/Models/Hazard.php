@@ -38,6 +38,11 @@ class Hazard extends Model
         return $this->hasMany(AiLog::class);
     }
 
+    public function aiAnalysis()
+    {
+        return $this->hasOne(AiAnalysis::class);
+    }
+
     public function getAuditTimeline()
     {
         $timeline = collect();
