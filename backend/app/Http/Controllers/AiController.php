@@ -3,13 +3,19 @@
 namespace App\Http\Controllers;
 
 use App\Models\AiLog;
-use App\Models\Setting;
 use App\Models\ActivityLog;
-use App\Services\SettingsService;
+use App\Services\AiConfigurationService;
 use Illuminate\Http\Request;
 
 class AiController extends Controller
 {
+    protected $aiService;
+
+    public function __construct(AiConfigurationService $aiService)
+    {
+        $this->aiService = $aiService;
+    }
+
     /**
      * Show AI statistics, settings, and logs.
      */
@@ -27,8 +33,8 @@ class AiController extends Controller
         $avgResponseTime = AiLog::avg('response_time');
         $avgResponseTime = $avgResponseTime ? round($avgResponseTime) : 0;
 
-        // 2. Load settings
-        $settings = SettingsService::all();
+        // 2. Load settings using new service
+        $settings = $this->aiService->getSettings();
 
         // 3. AI Logs with filters
         $logsQuery = AiLog::with('hazard');
