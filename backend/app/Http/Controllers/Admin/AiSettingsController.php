@@ -19,8 +19,8 @@ class AiSettingsController extends Controller
 
     public function index()
     {
-        // Redirect to AI Center where settings are integrated
-        return redirect()->route('admin.ai');
+        $settings = $this->aiService->getSettings();
+        return view('admin.ai.config', compact('settings'));
     }
 
     public function update(Request $request)

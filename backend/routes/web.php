@@ -46,10 +46,12 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('users/{id}/activate', [UserController::class, 'activate'])->name('users.activate');
 
     // AI Intelligence Center
-    Route::get('ai', [AiController::class, 'index'])->name('ai');
-    Route::post('ai/config', [AiController::class, 'updateConfig'])->name('ai.config');
+    Route::prefix('ai')->name('ai.')->group(function () {
+        Route::get('dashboard', [AiController::class, 'dashboard'])->name('dashboard');
+        Route::get('logs', [AiController::class, 'logs'])->name('logs');
+    });
 
-    // AI Settings Management
+    // AI Settings Management (Config)
     Route::get('ai-settings', [AiSettingsController::class, 'index'])->name('ai-settings.index');
     Route::put('ai-settings', [AiSettingsController::class, 'update'])->name('ai-settings.update');
     Route::get('ai-settings/history', [AiSettingsController::class, 'history'])->name('ai-settings.history');

@@ -345,9 +345,14 @@
             </li>
 
             <li class="sidebar-item">
-                <a href="{{ route('admin.ai') }}" class="sidebar-link {{ Route::is('admin.ai') ? 'active' : '' }}">
+                <a href="{{ route('admin.ai.dashboard') }}" class="sidebar-link {{ Route::is('admin.ai.*') || Route::is('admin.ai-settings.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-brain"></i> AI Center
                 </a>
+                <ul class="submenu">
+                    <li><a href="{{ route('admin.ai.dashboard') }}" class="submenu-link">Monitoring Dashboard</a></li>
+                    <li><a href="{{ route('admin.ai.logs') }}" class="submenu-link">Analysis Logs</a></li>
+                    <li><a href="{{ route('admin.ai-settings.index') }}" class="submenu-link">Configuration Settings</a></li>
+                </ul>
             </li>
 
             <li class="sidebar-item">
