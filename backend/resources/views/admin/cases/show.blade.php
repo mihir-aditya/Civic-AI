@@ -32,12 +32,16 @@
                 </div>
 
                 <!-- Image container -->
-                <div class="rounded-4 mb-4 overflow-hidden border bg-light d-flex align-items-center justify-content-center" style="height: 350px;">
-                    <div class="text-center text-muted">
-                        <i class="fa-regular fa-image fa-4x mb-3"></i>
-                        <h5>No uploaded image file</h5>
-                        <p style="font-size:0.8rem;">Local mock environment camera stream</p>
-                    </div>
+                <div class="rounded-4 mb-4 overflow-hidden border bg-light d-flex align-items-center justify-content-center" style="height: 350px; position: relative;">
+                    @if($hazard->image_path)
+                        <img src="{{ asset('storage/' . $hazard->image_path) }}" alt="Hazard Image" style="width: 100%; height: 100%; object-fit: cover;">
+                    @else
+                        <div class="text-center text-muted">
+                            <i class="fa-regular fa-image fa-4x mb-3"></i>
+                            <h5>No uploaded image file</h5>
+                            <p style="font-size:0.8rem;">Local mock environment camera stream</p>
+                        </div>
+                    @endif
                 </div>
 
                 <h5 class="fw-bold mb-3">Hazard Description</h5>
@@ -74,11 +78,47 @@
                     </div>
                 </div>
 
-                <div class="p-3 bg-white rounded-3 border">
+                <div class="p-3 bg-white rounded-3 border mb-3">
                     <h6 class="fw-bold text-dark mb-2">Gemini Analysis Summary</h6>
                     <p class="mb-0 text-secondary leading-relaxed" style="font-size: 0.9rem;">
                         {{ $hazard->ai_analysis_summary ?: 'Heuristics AI: Deep structural degradation. Confident classification. High incident likelihood.' }}
                     </p>
+                </div>
+
+                <h6 class="fw-bold text-dark mb-2 mt-4"><i class="fa-solid fa-list-check"></i> Raw AI Logs</h6>
+                <div class="table-responsive bg-white rounded-3 border">
+                    <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.85rem;">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Category</th>
+                                <th>Confidence</th>
+                                <th>Time (ms)</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @forelse($hazard->aiLogs as $log)
+                                <tr>
+                                    <td class="text-nowrap">{{ $log->created_at->format('M d, H:i:s') }}</td>
+                                    <td>{{ $log->category }}</td>
+                                    <td>{{ $log->confidence ? round($log->confidence * 100) . '%' : '-' }}</td>
+                                    <td>{{ $log->response_time }}</td>
+                                    <td>
+                                        @if($log->status === 'Success')
+                                            <span class="badge bg-success">Success</span>
+                                        @else
+                                            <span class="badge bg-danger">Failed</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted py-3">No AI logs available for this case.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
                 </div>
             </div>
 
@@ -105,11 +145,89 @@
                         </div>
                     </div>
                 </div>
+
+                <h6 class="fw-bold text-dark mt-4 mb-3"><i class="fa-solid fa-users"></i> Authenticity Verifiers</h6>
+                @if($hazard->verifications && $hazard->verifications->count() > 0)
+                    <div class="list-group">
+                        @foreach($hazard->verifications as $verification)
+                            @if($verification->user)
+                                <a href="{{ route('admin.users.show', $verification->user->id) }}" class="list-group-item list-group-item-action p-3">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div class="d-flex align-items-center">
+                                            <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white me-3" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                {{ substr($verification->user->name, 0, 1) }}
+                                            </div>
+                                            <div>
+                                                <h6 class="m-0 text-dark fw-semibold">{{ $verification->user->name }}</h6>
+                                                <small class="text-muted">Reputation: {{ $verification->user->reputation_score ?? 0 }} pts</small>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            @if($verification->status === 'Verified')
+                                                <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill"><i class="fa-solid fa-check"></i> Verified</span>
+                                            @elseif($verification->status === 'Rejected' || $verification->status === 'False')
+                                                <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill"><i class="fa-solid fa-xmark"></i> False Report</span>
+                                            @else
+                                                <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle rounded-pill">{{ $verification->status }}</span>
+                                            @endif
+                                        </div>
+                                    </div>
+                                    @if($verification->notes)
+                                        <div class="mt-2 text-secondary" style="font-size: 0.85rem; padding-left: 48px;">
+                                            <i class="fa-regular fa-comment-dots me-1"></i> {{ $verification->notes }}
+                                        </div>
+                                    @endif
+                                    @if($verification->evidence_path)
+                                        <div class="mt-2 text-info" style="font-size: 0.85rem; padding-left: 48px;">
+                                            <i class="fa-solid fa-paperclip me-1"></i> <span class="text-decoration-underline">Attached Evidence</span>
+                                        </div>
+                                    @endif
+                                </a>
+                            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <div class="text-center p-4 bg-light rounded-3 border text-muted">
+                        <i class="fa-solid fa-user-slash fa-2x mb-2"></i>
+                        <p class="m-0" style="font-size: 0.9rem;">No community verifications yet.</p>
+                    </div>
+                @endif
             </div>
         </div>
 
         <!-- Sidebar Timeline & Actions -->
         <div class="col-lg-4">
+            <!-- Creator Info -->
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold mb-3"><i class="fa-solid fa-user-shield text-green"></i> Reported By</h5>
+                @if($hazard->creator)
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="bg-light rounded-circle d-flex align-items-center justify-content-center me-3" style="width: 48px; height: 48px;">
+                            <i class="fa-solid fa-user text-secondary fa-lg"></i>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold m-0">{{ $hazard->creator->name }}</h6>
+                            <small class="text-muted">User ID: #{{ $hazard->creator->id }}</small>
+                        </div>
+                    </div>
+                    <ul class="list-group list-group-flush mb-3" style="font-size: 0.85rem;">
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Badge Level:</span> <span class="badge bg-primary">{{ $hazard->creator->badge_level ?? 'Novice' }}</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between px-0">
+                            <span>Reputation:</span> <span class="fw-bold text-success">{{ $hazard->creator->reputation_score ?? 0 }} pts</span>
+                        </li>
+                    </ul>
+                    <a href="{{ route('admin.users.show', $hazard->creator->id) }}" class="btn btn-sm btn-outline-secondary w-100">
+                        View Full Profile
+                    </a>
+                @else
+                    <div class="text-center text-muted py-2">
+                        <small>System or Unknown User</small>
+                    </div>
+                @endif
+            </div>
+
             <!-- Workflow Actions -->
             <div class="card card-custom p-4 mb-4">
                 <h5 class="fw-bold mb-3">Workflow State</h5>
@@ -180,38 +298,18 @@
             <div class="card card-custom p-4">
                 <h5 class="fw-bold mb-4"><i class="fa-solid fa-timeline text-green"></i> Case Timeline</h5>
                 <div class="timeline" style="font-size: 0.85rem;">
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="text-success"><i class="fa-solid fa-circle-check fa-lg"></i></div>
-                        <div>
-                            <span class="fw-bold d-block text-dark">Reported</span>
-                            <small class="text-muted">Reported by citizen. {{ $hazard->created_at->format('d M Y, h:i A') }}</small>
+                    @forelse($hazard->getAuditTimeline() as $event)
+                        <div class="d-flex gap-3 mb-3">
+                            <div class="{{ $event->color }}"><i class="fa-solid {{ $event->icon }} fa-lg"></i></div>
+                            <div>
+                                <span class="fw-bold d-block text-dark">{{ $event->title }}</span>
+                                <small class="text-muted d-block mb-1">{{ $event->description }}</small>
+                                <small class="text-secondary" style="font-size: 0.75rem;">{{ $event->time->format('d M Y, h:i A') }}</small>
+                            </div>
                         </div>
-                    </div>
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="text-success"><i class="fa-solid fa-circle-check fa-lg"></i></div>
-                        <div>
-                            <span class="fw-bold d-block text-dark">AI Processed</span>
-                            <small class="text-muted">Gemini analyzed image structure details.</small>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-3 mb-3">
-                        <div class="{{ $hazard->status === 'Verified' || $hazard->status === 'Resolved' ? 'text-success' : 'text-muted' }}">
-                            <i class="fa-solid fa-circle-check fa-lg"></i>
-                        </div>
-                        <div>
-                            <span class="fw-bold d-block text-dark">Verified</span>
-                            <small class="text-muted">Audit state determined by community votes.</small>
-                        </div>
-                    </div>
-                    <div class="d-flex gap-3">
-                        <div class="{{ $hazard->status === 'Resolved' ? 'text-success' : 'text-muted' }}">
-                            <i class="fa-solid fa-circle-check fa-lg"></i>
-                        </div>
-                        <div>
-                            <span class="fw-bold d-block text-dark">Resolved</span>
-                            <small class="text-muted">Resolution verified by municipal actions.</small>
-                        </div>
-                    </div>
+                    @empty
+                        <div class="text-muted text-center py-2">No timeline events found.</div>
+                    @endforelse
                 </div>
             </div>
         </div>

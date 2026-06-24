@@ -20,7 +20,7 @@
 * **Enterprise Management**: Built on Laravel 11, Blade layouts, and Bootstrap 5.
 * **Dynamic Analytics Widgets**: Risk donuts, monthly counts, resolution averages, and category pies using Chart.js.
 * **Interactive Leaflet Map**: Real-time maps showing hazard clusters, severity status filters, and interactive popups with navigation bridges.
-* **Administrative Directories**: Unified hubs to suspend/promote accounts, merge duplicate reports, and resolve conflicting audits.
+* **Administrative Directories**: Unified hubs to suspend/promote accounts, merge duplicate reports, manage AI configurations, and resolve conflicting audits.
 
 ---
 

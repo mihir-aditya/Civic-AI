@@ -39,7 +39,7 @@ class CaseController extends Controller
      */
     public function show($id)
     {
-        $hazard = Hazard::with(['creator', 'verifications.user'])->findOrFail($id);
+        $hazard = Hazard::with(['creator', 'verifications.user', 'aiLogs'])->findOrFail($id);
         return view('admin.cases.show', compact('hazard'));
     }
 

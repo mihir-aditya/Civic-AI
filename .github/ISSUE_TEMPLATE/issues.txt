@@ -1,0 +1,168 @@
+$Repo = "Civic-Guardian/Civic-AI"
+
+Write-Host "Creating labels..."
+
+$labels = @(
+    @{name="mobile"; color="36A2EB"},
+    @{name="backend"; color="FF5733"},
+    @{name="admin"; color="8E44AD"},
+    @{name="ai"; color="27AE60"},
+    @{name="website"; color="3498DB"},
+    @{name="infrastructure"; color="F39C12"},
+    @{name="database"; color="E74C3C"}
+)
+
+foreach ($label in $labels) {
+    gh api "repos/$Repo/labels" `
+        -f name="$($label.name)" `
+        -f color="$($label.color)" 2>$null
+}
+
+Write-Host "Labels ready."
+
+$issues = @(
+
+# MOBILE
+@{Title="Google Sign In"; Label="mobile"},
+@{Title="User Profile Management"; Label="mobile"},
+@{Title="Multi Language Support"; Label="mobile"},
+@{Title="Occupation Based User Preferences"; Label="mobile"},
+@{Title="Offline Report Storage"; Label="mobile"},
+@{Title="Auto Sync Offline Reports"; Label="mobile"},
+@{Title="Image Based Issue Reporting"; Label="mobile"},
+@{Title="Video Based Issue Reporting"; Label="mobile"},
+@{Title="Voice To Text Reporting"; Label="mobile"},
+@{Title="Manual Description Reporting"; Label="mobile"},
+@{Title="Geo Location Capture"; Label="mobile"},
+@{Title="Google Maps Integration"; Label="mobile"},
+@{Title="Live Hazard Map"; Label="mobile"},
+@{Title="Nearby Hazard Discovery"; Label="mobile"},
+@{Title="Hazard Marker Clustering"; Label="mobile"},
+@{Title="Community Verification System"; Label="mobile"},
+@{Title="False Report Detection"; Label="mobile"},
+@{Title="Vote Based Verification"; Label="mobile"},
+@{Title="Resolved Issue Confirmation"; Label="mobile"},
+@{Title="Real Time Issue Tracking"; Label="mobile"},
+@{Title="Issue Status Timeline"; Label="mobile"},
+@{Title="Issue Progress Updates"; Label="mobile"},
+@{Title="Issue Resolution Tracking"; Label="mobile"},
+@{Title="Navigation Safety Alerts"; Label="mobile"},
+@{Title="Upcoming Hazard Warning"; Label="mobile"},
+@{Title="Journey Monitoring"; Label="mobile"},
+@{Title="Route Risk Detection"; Label="mobile"},
+@{Title="Push Notifications"; Label="mobile"},
+@{Title="Emergency Alerts"; Label="mobile"},
+@{Title="Area Based Notifications"; Label="mobile"},
+@{Title="Gamification System"; Label="mobile"},
+@{Title="Citizen Contribution Score"; Label="mobile"},
+@{Title="Badges And Achievements"; Label="mobile"},
+@{Title="Top Contributors Leaderboard"; Label="mobile"},
+@{Title="Impact Dashboard"; Label="mobile"},
+@{Title="Cases Reported Statistics"; Label="mobile"},
+@{Title="Cases Resolved Statistics"; Label="mobile"},
+@{Title="Community Impact Metrics"; Label="mobile"},
+
+# BACKEND
+@{Title="Setup Laravel 12 Project"; Label="backend"},
+@{Title="Configure Sanctum Authentication"; Label="backend"},
+@{Title="Firebase Authentication Integration"; Label="backend"},
+@{Title="Hazard CRUD APIs"; Label="backend"},
+@{Title="Verification APIs"; Label="backend"},
+@{Title="Notification APIs"; Label="backend"},
+@{Title="Maps APIs"; Label="backend"},
+@{Title="Profile APIs"; Label="backend"},
+@{Title="Address Resolution From Coordinates"; Label="backend"},
+@{Title="Municipality Complaint Forwarding"; Label="backend"},
+@{Title="Email Complaint Generation"; Label="backend"},
+@{Title="Complaint Escalation System"; Label="backend"},
+@{Title="Activity Logging System"; Label="backend"},
+@{Title="Queue System Setup"; Label="backend"},
+
+# DATABASE
+@{Title="Create Users Table"; Label="database"},
+@{Title="Create Hazard Categories Table"; Label="database"},
+@{Title="Create Hazards Table"; Label="database"},
+@{Title="Create Hazard Images Table"; Label="database"},
+@{Title="Create Verifications Table"; Label="database"},
+@{Title="Create Notifications Table"; Label="database"},
+@{Title="Create Activity Logs Table"; Label="database"},
+@{Title="Create Hazard Timelines Table"; Label="database"},
+@{Title="Create AI Analysis Table"; Label="database"},
+@{Title="Create AI Logs Table"; Label="database"},
+@{Title="Create Settings Table"; Label="database"},
+
+# AI
+@{Title="Gemini Integration"; Label="ai"},
+@{Title="AI Powered Issue Categorization"; Label="ai"},
+@{Title="AI Severity Detection"; Label="ai"},
+@{Title="AI Generated Issue Summary"; Label="ai"},
+@{Title="AI Confidence Scoring"; Label="ai"},
+@{Title="AI Duplicate Issue Detection"; Label="ai"},
+@{Title="Predictive Insights"; Label="ai"},
+@{Title="High Risk Area Prediction"; Label="ai"},
+@{Title="Hazard Density Analytics"; Label="ai"},
+@{Title="City Safety Score"; Label="ai"},
+@{Title="Smart Hazard Alert Engine"; Label="ai"},
+
+# ADMIN
+@{Title="Admin Dashboard Layout"; Label="admin"},
+@{Title="Dashboard Statistics Cards"; Label="admin"},
+@{Title="Live Hazard Monitoring Map"; Label="admin"},
+@{Title="Recent Reports Widget"; Label="admin"},
+@{Title="Recent Activities Widget"; Label="admin"},
+@{Title="Case Management Module"; Label="admin"},
+@{Title="Case Detail View"; Label="admin"},
+@{Title="Verify Case Workflow"; Label="admin"},
+@{Title="Resolve Case Workflow"; Label="admin"},
+@{Title="Reject False Reports"; Label="admin"},
+@{Title="User Management Module"; Label="admin"},
+@{Title="Suspend User"; Label="admin"},
+@{Title="View User Contributions"; Label="admin"},
+@{Title="AI Monitoring Center"; Label="admin"},
+@{Title="AI Usage Statistics"; Label="admin"},
+@{Title="AI Classification Logs"; Label="admin"},
+@{Title="AI Prompt Configuration"; Label="admin"},
+@{Title="Activity Logs Module"; Label="admin"},
+@{Title="User Activity Logs"; Label="admin"},
+@{Title="Admin Activity Logs"; Label="admin"},
+@{Title="Case Audit Timeline"; Label="admin"},
+@{Title="Analytics Dashboard"; Label="admin"},
+@{Title="Reports By Category Chart"; Label="admin"},
+@{Title="Resolution Rate Analytics"; Label="admin"},
+@{Title="Verification Analytics"; Label="admin"},
+
+# WEBSITE
+@{Title="Landing Page"; Label="website"},
+@{Title="About Page"; Label="website"},
+@{Title="Features Page"; Label="website"},
+@{Title="Statistics Page"; Label="website"},
+@{Title="Download App Page"; Label="website"},
+@{Title="Contact Page"; Label="website"},
+@{Title="Public Hazard Map"; Label="website"},
+
+# INFRASTRUCTURE
+@{Title="Google Cloud Storage Integration"; Label="infrastructure"},
+@{Title="WebP Image Optimization"; Label="infrastructure"},
+@{Title="Thumbnail Generation"; Label="infrastructure"},
+@{Title="Firebase Cloud Messaging Setup"; Label="infrastructure"},
+@{Title="Cloud Run Deployment"; Label="infrastructure"},
+@{Title="Production Environment Setup"; Label="infrastructure"},
+@{Title="SSL Configuration"; Label="infrastructure"},
+@{Title="Monitoring And Error Tracking"; Label="infrastructure"}
+yes
+)
+
+foreach ($issue in $issues) {
+
+    Write-Host "Creating: $($issue.Title)"
+
+    gh api "repos/$Repo/issues" `
+        -f title="$($issue.Title)" `
+        -f body="Auto-generated feature task for NagarRakshak." `
+        -f labels[]="$($issue.Label)" | Out-Null
+}
+
+Write-Host ""
+Write-Host "================================="
+Write-Host "All issues created successfully."
+Write-Host "================================="
