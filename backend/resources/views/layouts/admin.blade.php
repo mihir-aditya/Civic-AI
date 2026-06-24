@@ -333,7 +333,7 @@
             </li>
 
             <li class="sidebar-item">
-                <a href="{{ route('admin.dashboard') }}#map-card" class="sidebar-link">
+                <a href="{{ route('admin.maps.index') }}" class="sidebar-link {{ Route::is('admin.maps.*') ? 'active' : '' }}">
                     <i class="fa-solid fa-map-location-dot"></i> Map Center
                 </a>
             </li>

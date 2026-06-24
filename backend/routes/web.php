@@ -10,6 +10,7 @@ use App\Http\Controllers\AnalyticsController;
 use App\Http\Controllers\LogController;
 use App\Http\Controllers\SystemHealthController;
 use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\MapController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Admin\AiSettingsController;
 
@@ -34,6 +35,9 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     Route::post('cases/{id}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
     Route::post('cases/{id}/archive', [CaseController::class, 'archive'])->name('cases.archive');
     Route::delete('cases/{id}/delete', [CaseController::class, 'destroy'])->name('cases.destroy');
+
+    // Map Center (Live Hazard Monitoring Map)
+    Route::get('maps', [MapController::class, 'index'])->name('maps.index');
 
     // User Directory
     Route::get('users', [UserController::class, 'index'])->name('users.index');

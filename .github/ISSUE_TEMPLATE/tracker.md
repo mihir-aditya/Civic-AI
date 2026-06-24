@@ -85,7 +85,7 @@
 ## ADMIN
 - [ ] Admin Dashboard Layout
 - [ ] Dashboard Statistics Cards
-- [ ] Live Hazard Monitoring Map
+- [x] Live Hazard Monitoring Map (Completed: 2026-06-25 03:05 AM)
 - [ ] Recent Reports Widget
 - [ ] Recent Activities Widget
 - [ ] Case Management Module
