@@ -208,7 +208,7 @@ fun DetailScreen(
                     )
                 }
 
-                LeafletWebView(
+                GoogleMapView(
                     modifier = Modifier.fillMaxSize(),
                     markers = listOf(marker),
                     centerLat = hazardLat,
