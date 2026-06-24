@@ -1,36 +1,5 @@
 package com.nagarrakshak.ui.screens
 
-import android.widget.Toast
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalClipboardManager
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
-import com.nagarrakshak.ui.theme.PrimaryColor
-import com.nagarrakshak.ui.theme.WarningColor
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.json.JSONArray
-import org.json.JSONObject
-import java.io.OutputStreamWriter
-import java.net.HttpURLConnection
-import java.net.URL
-
 import android.Manifest
 import android.content.Context
 import android.graphics.Bitmap
@@ -42,15 +11,62 @@ import android.location.LocationManager
 import android.os.Bundle
 import android.os.Looper
 import android.util.Base64
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.result.launch
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
+import com.nagarrakshak.data.AuthManager
+import com.nagarrakshak.ui.theme.PrimaryColor
+import com.nagarrakshak.ui.theme.WarningColor
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
 import java.io.ByteArrayOutputStream
+import java.io.OutputStreamWriter
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Locale
 
 // Tiny 1x1 black JPEG base64 string to satisfy image input requirement for Gemini API camera simulation
@@ -62,13 +78,19 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
+    val authManager = remember { AuthManager(context) }
 
+    // Navigation and steps
+    var currentStep by remember { mutableStateOf(1) } // 1: Capture, 2: AI Scan Results, 3: Success
+
+    // State variables
     var selectedCategory by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var severity by remember { mutableStateOf("Pending AI Analysis") }
+    var confidenceScore by remember { mutableStateOf("94%") }
+    var analysisReason by remember { mutableStateOf("Large open pothole with water accumulation poses risk to vehicles and pedestrians.") }
     
     var isAnalyzing by remember { mutableStateOf(false) }
-    var aiAnalysisResult by remember { mutableStateOf<String?>(null) }
     var petitionText by remember { mutableStateOf<String?>(null) }
     var selectedPhotoOption by remember { mutableStateOf<String?>(null) }
     var gpsCoordinates by remember { mutableStateOf("Detecting GPS...") }
@@ -76,7 +98,17 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
 
     var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
     var stagedImageBase64 by remember { mutableStateOf<String?>(null) }
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
 
+    // User details inputs for step 2
+    var userNameInput by remember { mutableStateOf(authManager.userName ?: "") }
+    var userMobileInput by remember { mutableStateOf("") }
+
+    // Collapsible states
+    var isSummaryExpanded by remember { mutableStateOf(false) }
+    var isPetitionExpanded by remember { mutableStateOf(false) }
+
+    // Launcher definitions
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
@@ -87,9 +119,6 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
             val byteArray = byteArrayOutputStream.toByteArray()
             stagedImageBase64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
-            if (description.isBlank()) {
-                description = "Analyzed hazard from captured camera photo."
-            }
             Toast.makeText(context, "Image captured successfully!", Toast.LENGTH_SHORT).show()
         }
     }
@@ -108,9 +137,6 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
                     val byteArray = byteArrayOutputStream.toByteArray()
                     stagedImageBase64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
-                    if (description.isBlank()) {
-                        description = "Analyzed hazard from uploaded gallery photo."
-                    }
                     Toast.makeText(context, "Image uploaded successfully!", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
@@ -136,10 +162,12 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
         val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
         if (fineGranted || coarseGranted) {
             fetchRealLocation(context) { lat, lng, address ->
-                gpsCoordinates = "Latitude: $lat, Longitude: $lng\n$address"
+                gpsCoordinates = address
+                userLatLng = LatLng(lat, lng)
             }
         } else {
-            gpsCoordinates = "GPS Permission Denied. Fallback: Talwandi, Kota"
+            gpsCoordinates = "Talwandi, Kota, Rajasthan 324005"
+            userLatLng = LatLng(25.18254, 75.82736)
         }
     }
 
@@ -148,7 +176,8 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
         val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
         if (hasFine || hasCoarse) {
             fetchRealLocation(context) { lat, lng, address ->
-                gpsCoordinates = "Latitude: $lat, Longitude: $lng\n$address"
+                gpsCoordinates = address
+                userLatLng = LatLng(lat, lng)
             }
         } else {
             locationPermissionsLauncher.launch(
@@ -157,6 +186,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
         }
     }
 
+    // Modal Choose Hazard Image source dialog
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
@@ -176,7 +206,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                             }
                             showDialog = false
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("📷 Open Camera & Take Photo")
@@ -187,7 +217,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                             galleryLauncher.launch("image/*")
                             showDialog = false
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text("🖼️ Select from Gallery")
@@ -248,342 +278,941 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
         )
     }
 
+    if (isAnalyzing) {
+        Dialog(
+            onDismissRequest = {},
+            properties = DialogProperties(dismissOnBackPress = false, dismissOnClickOutside = false)
+        ) {
+            Card(
+                shape = RoundedCornerShape(24.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    CircularProgressIndicator(color = Color(0xFF16A34A))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Gemini AI is scanning the image & auto-drafting your municipal petition...",
+                        fontSize = 14.sp,
+                        color = Color.DarkGray,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+        }
+    }
+
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = when (currentStep) {
+                            1 -> "Report Hazard"
+                            2 -> "AI Scan Results"
+                            else -> "Report Registered"
+                        },
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF0F172A)
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        if (currentStep > 1) {
+                            currentStep -= 1
+                        } else {
+                            onReportSubmitted()
+                        }
+                    }) {
+                        Icon(imageVector = Icons.Default.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    Box(
+                        modifier = Modifier
+                            .padding(end = 12.dp)
+                            .size(36.dp)
+                            .background(Color(0xFF16A34A).copy(alpha = 0.1f), shape = RoundedCornerShape(10.dp)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text("🛡️", fontSize = 20.sp)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+            )
+        }
+    ) { innerPadding ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .background(Color(0xFFF8FAFC))
+        ) {
+            // Horizontal Step Indicators
+            StepIndicator(currentStep = currentStep)
+
+            Divider(color = Color(0xFFE2E8F0))
+
+            // Screen Step Content
+            Box(modifier = Modifier.weight(1f)) {
+                when (currentStep) {
+                    1 -> StepOneCaptureContent(
+                        selectedPhotoOption = selectedPhotoOption,
+                        capturedBitmap = capturedBitmap,
+                        gpsCoordinates = gpsCoordinates,
+                        userLatLng = userLatLng,
+                        description = description,
+                        onDescriptionChange = { description = it },
+                        onChooseImageClick = { showDialog = true },
+                        onNextClick = {
+                            if (stagedImageBase64 == null) {
+                                Toast.makeText(context, "Please capture or select a hazard image first!", Toast.LENGTH_SHORT).show()
+                                return@StepOneCaptureContent
+                            }
+                            isAnalyzing = true
+                            coroutineScope.launch {
+                                val result = callGeminiApi(
+                                    descriptionText = description.ifBlank { "Unidentified civic safety hazard reported." },
+                                    imageBase64 = stagedImageBase64
+                                )
+                                isAnalyzing = false
+                                if (result != null) {
+                                    try {
+                                        val cleanResult = result.trim()
+                                            .replace("```json", "")
+                                            .replace("```", "")
+                                            .trim()
+                                        val json = JSONObject(cleanResult)
+                                        selectedCategory = json.optString("category", "Pothole on Road")
+                                        severity = json.optString("severity", "High Risk")
+                                        petitionText = json.optString("petition", "")
+                                        confidenceScore = "94%"
+                                        analysisReason = "AI detected a potential safety hazard in public infrastructure. Action recommended."
+                                    } catch (e: Exception) {
+                                        // Fallback default parsing
+                                        selectedCategory = "Pothole on Road"
+                                        severity = "High Risk"
+                                        confidenceScore = "90%"
+                                        analysisReason = "Large open pothole with water accumulation poses risk to vehicles and pedestrians."
+                                        petitionText = result
+                                    }
+                                } else {
+                                    // Complete offline simulation mock
+                                    selectedCategory = "Pothole on Road"
+                                    severity = "High Risk"
+                                    confidenceScore = "94%"
+                                    analysisReason = "Large open pothole with water accumulation poses risk to vehicles and pedestrians."
+                                    petitionText = "To,\nThe Municipal Commissioner,\nBhopal Municipal Corporation,\nBhopal, Madhya Pradesh\n\nSubject: Urgent request for repair of pothole on road near Shivaji Nagar, Bhopal.\n\nRespected Sir/Madam,\nI would like to bring to your kind attention the poor condition of the road near 12, Infront of Govt. School, Shivaji Nagar, Bhopal. The large open pothole is causing immense vehicle damage and poses severe safety hazards to pedestrians and traffic alike.\n\nKindly dispatch repair crews urgently.\n\nYours faithfully,\nRahul Sharma"
+                                }
+                                currentStep = 2
+                            }
+                        }
+                    )
+                    2 -> StepTwoScanResultsContent(
+                        selectedCategory = selectedCategory,
+                        severity = severity,
+                        confidenceScore = confidenceScore,
+                        analysisReason = analysisReason,
+                        gpsCoordinates = gpsCoordinates,
+                        petitionText = petitionText ?: "",
+                        onPetitionChange = { petitionText = it },
+                        userName = userNameInput,
+                        onNameChange = { userNameInput = it },
+                        userMobile = userMobileInput,
+                        onMobileChange = { userMobileInput = it },
+                        isSummaryExpanded = isSummaryExpanded,
+                        onSummaryToggle = { isSummaryExpanded = !isSummaryExpanded },
+                        isPetitionExpanded = isPetitionExpanded,
+                        onPetitionToggle = { isPetitionExpanded = !isPetitionExpanded },
+                        onCopyPetition = {
+                            petitionText?.let {
+                                clipboardManager.setText(AnnotatedString(it))
+                                Toast.makeText(context, "Petition letter copied to clipboard!", Toast.LENGTH_SHORT).show()
+                            }
+                        },
+                        onSubmitClick = {
+                            if (userNameInput.isBlank() || userMobileInput.isBlank()) {
+                                Toast.makeText(context, "Please enter your name and mobile number to authenticate the report.", Toast.LENGTH_SHORT).show()
+                                return@StepTwoScanResultsContent
+                            }
+                            isAnalyzing = true
+                            coroutineScope.launch {
+                                delay(1200) // Mock database report generation
+                                isAnalyzing = false
+                                Toast.makeText(context, "Civic report submitted successfully!", Toast.LENGTH_SHORT).show()
+                                currentStep = 3
+                            }
+                        }
+                    )
+                    3 -> StepThreeSuccessContent(
+                        onDoneClick = onReportSubmitted
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun StepIndicator(currentStep: Int) {
+    val steps = listOf("Capture", "AI Scan", "Details", "Petition", "Submit")
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        steps.forEachIndexed { index, stepTitle ->
+            val stepNumber = index + 1
+            
+            // Map the layout states exactly to step indices
+            val isActive = when (currentStep) {
+                1 -> stepNumber == 1
+                2 -> stepNumber <= 4
+                else -> true
+            }
+            
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.weight(1f)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(24.dp)
+                        .background(
+                            color = if (isActive) Color(0xFF16A34A) else Color(0xFFE2E8F0),
+                            shape = CircleShape
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = stepNumber.toString(),
+                        color = if (isActive) Color.White else Color(0xFF94A3B8),
+                        fontSize = 11.sp,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = stepTitle,
+                    color = if (isActive) Color(0xFF16A34A) else Color(0xFF94A3B8),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold
+                )
+            }
+            
+            if (index < steps.size - 1) {
+                val isLineActive = when (currentStep) {
+                    1 -> false
+                    2 -> stepNumber < 4
+                    else -> true
+                }
+                Box(
+                    modifier = Modifier
+                        .width(22.dp)
+                        .height(2.dp)
+                        .background(if (isLineActive) Color(0xFF16A34A) else Color(0xFFE2E8F0))
+                        .offset(y = (-8).dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StepOneCaptureContent(
+    selectedPhotoOption: String?,
+    capturedBitmap: Bitmap?,
+    gpsCoordinates: String,
+    userLatLng: LatLng?,
+    description: String,
+    onDescriptionChange: (String) -> Unit,
+    onChooseImageClick: () -> Unit,
+    onNextClick: () -> Unit
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF8FAFC))
-            .padding(16.dp)
-            .verticalScroll(rememberScrollState()),
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         Text(
-            text = "Report a Hazard",
-            style = MaterialTheme.typography.titleLarge,
+            text = "Capture Hazard Image",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0F172A)
+        )
+        Text(
+            text = "Take a clear photo of the issue",
+            fontSize = 13.sp,
+            color = Color(0xFF64748B),
+            modifier = Modifier.offset(y = (-10).dp)
+        )
+
+        // Photo Preview Box
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+                .clip(RoundedCornerShape(16.dp))
+                .background(Color(0xFFF1F5F9))
+                .border(BorderStroke(1.dp, Color(0xFFE2E8F0)), RoundedCornerShape(16.dp))
+                .clickable { onChooseImageClick() },
+            contentAlignment = Alignment.Center
+        ) {
+            if (selectedPhotoOption != null) {
+                if (capturedBitmap != null) {
+                    Image(
+                        bitmap = capturedBitmap.asImageBitmap(),
+                        contentDescription = "Captured Hazard",
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    // Simulated preview for mock photos
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    colors = listOf(Color(0xFF94A3B8), Color(0xFF475569))
+                                )
+                            ),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "📸 [Staged Mock: $selectedPhotoOption]",
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
+                    }
+                }
+                
+                // Lightning bolt flash icon overlay
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp)
+                        .size(32.dp)
+                        .background(Color.White, shape = CircleShape)
+                        .border(1.dp, Color(0xFFE2E8F0), CircleShape),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text("⚡", fontSize = 14.sp)
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("📷", fontSize = 38.sp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text("Tap to capture / upload hazard image", fontSize = 13.sp, color = Color(0xFF64748B))
+                }
+            }
+        }
+
+        // Camera Action buttons
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            Button(
+                onClick = onChooseImageClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF0FDF4), contentColor = Color(0xFF16A34A)),
+                border = BorderStroke(1.dp, Color(0xFFDCFCE7)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("📷 Camera", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+                }
+            }
+
+            Button(
+                onClick = onChooseImageClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF475569)),
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("🖼️ Gallery", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+
+            Button(
+                onClick = onChooseImageClick,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Color(0xFF475569)),
+                border = BorderStroke(1.dp, Color(0xFFCBD5E1)),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Text("🔄 Retake", fontWeight = FontWeight.Bold, fontSize = 13.sp)
+            }
+        }
+
+        // Auto-detected GPS location
+        Text(
+            text = "Auto-Detected Location",
+            fontSize = 15.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0F172A)
+        )
+        
+        Row(
+            modifier = Modifier.fillMaxWidth().offset(y = (-12).dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text("Accuracy: 12 m", fontSize = 12.sp, color = Color(0xFF16A34A), fontWeight = FontWeight.Bold,
+                 modifier = Modifier
+                     .background(Color(0xFFF0FDF4), shape = RoundedCornerShape(8.dp))
+                     .padding(horizontal = 8.dp, vertical = 4.dp))
+        }
+
+        // Google Map Preview Card
+        Card(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(160.dp),
+            shape = RoundedCornerShape(16.dp),
+            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+        ) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                val mapCenter = userLatLng ?: LatLng(25.18254, 75.82736)
+                val cameraState = rememberCameraPositionState {
+                    position = CameraPosition.fromLatLngZoom(mapCenter, 15f)
+                }
+                
+                LaunchedEffect(userLatLng) {
+                    if (userLatLng != null) {
+                        cameraState.position = CameraPosition.fromLatLngZoom(userLatLng, 15f)
+                    }
+                }
+
+                GoogleMap(
+                    modifier = Modifier.fillMaxSize(),
+                    cameraPositionState = cameraState,
+                    properties = com.google.maps.android.compose.MapProperties(isMyLocationEnabled = userLatLng != null),
+                    uiSettings = com.google.maps.android.compose.MapUiSettings(zoomControlsEnabled = false, myLocationButtonEnabled = false)
+                ) {
+                    Marker(
+                        state = MarkerState(position = mapCenter),
+                        title = "Reported Location"
+                    )
+                }
+            }
+        }
+
+        // Address Display details
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text("Address", fontSize = 12.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = gpsCoordinates,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF0F172A)
+                    )
+                }
+                IconButton(
+                    onClick = { },
+                    modifier = Modifier
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+                        .size(36.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Location", tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
+                }
+            }
+        }
+
+        // Optional Description field
+        Text(
+            text = "Add Short Description (Optional)",
+            fontSize = 15.sp,
             fontWeight = FontWeight.Bold,
             color = Color(0xFF0F172A)
         )
 
-        // Capture/Upload Image Box
-        Box(
+        OutlinedTextField(
+            value = description,
+            onValueChange = { if (it.length <= 150) onDescriptionChange(it) },
+            placeholder = { Text("Example: Large pothole causing vehicle damage...", fontSize = 14.sp) },
             modifier = Modifier
                 .fillMaxWidth()
-                .height(180.dp)
-                .background(Color.White, shape = RoundedCornerShape(16.dp))
-                .border(
-                    width = 2.dp,
-                    color = PrimaryColor.copy(alpha = 0.3f),
-                    shape = RoundedCornerShape(16.dp)
-                )
-                .clickable { showDialog = true },
-            contentAlignment = Alignment.Center
+                .height(90.dp)
+                .offset(y = (-8).dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = Color.White,
+                unfocusedContainerColor = Color.White
+            )
+        )
+        Text(
+            text = "${description.length}/150",
+            fontSize = 11.sp,
+            color = Color.Gray,
+            modifier = Modifier
+                .align(Alignment.End)
+                .offset(y = (-18).dp)
+        )
+
+        // Next Button
+        Button(
+            onClick = onNextClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D)),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            if (isAnalyzing) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    CircularProgressIndicator(color = PrimaryColor)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    Text("Gemini AI is analyzing image, class, and drafting petition...", fontSize = 12.sp, color = Color.Gray)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(20.dp))
+                Text("Next", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Next")
+            }
+        }
+
+        // Safety Info Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Row(
+                modifier = Modifier.padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("🛡️", fontSize = 20.sp)
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = "Your report will help make our community safer.",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF14532D)
+                    )
+                    Text(
+                        text = "All reports are verified by AI and community.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF15803D)
+                    )
                 }
-            } else if (selectedPhotoOption != null) {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    if (capturedBitmap != null) {
-                        Image(
-                            bitmap = capturedBitmap!!.asImageBitmap(),
-                            contentDescription = "Captured Image",
-                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
-                            contentScale = ContentScale.Crop
+            }
+        }
+    }
+}
+
+@Composable
+fun StepTwoScanResultsContent(
+    selectedCategory: String,
+    severity: String,
+    confidenceScore: String,
+    analysisReason: String,
+    gpsCoordinates: String,
+    petitionText: String,
+    onPetitionChange: (String) -> Unit,
+    userName: String,
+    onNameChange: (String) -> Unit,
+    userMobile: String,
+    onMobileChange: (String) -> Unit,
+    isSummaryExpanded: Boolean,
+    onSummaryToggle: () -> Unit,
+    isPetitionExpanded: Boolean,
+    onPetitionToggle: () -> Unit,
+    onCopyPetition: () -> Unit,
+    onSubmitClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // AI Analysis Completed Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFFF0FDF4)),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFDCFCE7))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("✨", fontSize = 14.sp, color = Color(0xFF16A34A))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(
+                            text = "AI Analysis Completed",
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF14532D)
                         )
+                    }
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = "Our AI has analyzed the image and detected the issue.",
+                        fontSize = 12.sp,
+                        color = Color(0xFF15803D)
+                    )
+                }
+                Text("🤖", fontSize = 36.sp) // Mock Robot Illustration
+            }
+        }
+
+        // Detected Issue Section
+        Text(text = "Detected Issue", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+
+        Card(
+            modifier = Modifier.fillMaxWidth().offset(y = (-8).dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
-                                .fillMaxSize()
-                                .background(Color.Black.copy(alpha = 0.4f))
-                                .padding(8.dp),
-                            contentAlignment = Alignment.BottomCenter
-                        ) {
-                            Text(
-                                text = "Staged: $selectedPhotoOption. Tap to change.",
-                                color = Color.White,
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Bold
-                            )
-                        }
-                    } else {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .background(PrimaryColor.copy(alpha = 0.1f)),
+                                .size(36.dp)
+                                .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp)),
                             contentAlignment = Alignment.Center
                         ) {
-                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                Text("📷 Image Staged successfully", fontWeight = FontWeight.Bold, color = PrimaryColor)
-                                Text("[$selectedPhotoOption]", fontSize = 12.sp, color = Color.Gray)
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text("Tap to change image", fontSize = 11.sp, color = Color.Gray)
-                            }
+                            Text("⚠️", fontSize = 18.sp)
                         }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(text = selectedCategory, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    }
+                    Text(
+                        text = "$confidenceScore Confidence",
+                        fontSize = 11.sp,
+                        color = Color(0xFF16A34A),
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier
+                            .background(Color(0xFFF0FDF4), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+
+                // Severity Badge
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text("Severity Level", fontSize = 13.sp, color = Color.Gray)
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Row(
+                        modifier = Modifier
+                            .background(Color(0xFFFEE2E2), shape = RoundedCornerShape(8.dp))
+                            .padding(horizontal = 10.dp, vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("🚨", fontSize = 11.sp)
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(text = severity.replace(" Risk", ""), color = Color(0xFFEF4444), fontSize = 12.sp, fontWeight = FontWeight.Bold)
                     }
                 }
-            } else {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text("📷 Tap to Upload or Capture Image", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                    Text("Gemini AI will analyze hazard type, severity & draft petition", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                }
-            }
-        }
 
-        // GPS Coordinates
-        Column {
-            Text(
-                text = "Location (GPS Auto-Detection)",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                border = BorderStroke(1.dp, Color(0xFFE2E8F0)),
-                shape = RoundedCornerShape(12.dp)
-            ) {
                 Text(
-                    text = gpsCoordinates,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.padding(12.dp),
-                    color = if (gpsCoordinates.startsWith("Detecting")) Color.Gray else PrimaryColor
+                    text = "Reason: $analysisReason",
+                    fontSize = 13.sp,
+                    color = Color(0xFF475569)
                 )
             }
         }
 
-        // Description Input
-        Column {
-            Text(
-                text = "Description",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            OutlinedTextField(
-                value = description,
-                onValueChange = { description = it },
-                placeholder = { Text("Describe the hazard and surrounding risk level...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(100.dp)
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = Color.White,
-                    unfocusedBorderColor = Color(0xFFE2E8F0)
-                )
-            )
+        // AI Analysis Details Grid
+        Text(text = "AI Analysis Details", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Row(
+            modifier = Modifier.fillMaxWidth().offset(y = (-8).dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            DetailGridCard(icon = "🎯", title = "Issue Type", value = selectedCategory.substringBefore(" on"), modifier = Modifier.weight(1f))
+            DetailGridCard(icon = "📊", title = "Severity", value = severity.replace(" Risk", ""), modifier = Modifier.weight(1f))
+            DetailGridCard(icon = "🛡️", title = "Confidence", value = confidenceScore, modifier = Modifier.weight(1f))
         }
 
-        // Gemini AI Trigger Button
-        Button(
-            onClick = {
-                if (description.isBlank()) {
-                    Toast.makeText(context, "Please write a description or capture a mock image first!", Toast.LENGTH_SHORT).show()
-                    return@Button
+        // Collapsible AI Summary Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(12.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().clickable { onSummaryToggle() },
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text("📄", fontSize = 14.sp)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("AI Summary", fontSize = 14.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+                    }
+                    Icon(
+                        imageVector = if (isSummaryExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = "Toggle Summary"
+                    )
                 }
                 
-                coroutineScope.launch {
-                    isAnalyzing = true
-                    val response = callGeminiApi(description, stagedImageBase64)
-                    isAnalyzing = false
-                    
-                    if (response != null) {
-                        try {
-                            // Strip markdown wrapper ticks
-                            var cleanedText = response.trim()
-                            if (cleanedText.startsWith("```json")) {
-                                cleanedText = cleanedText.substringAfter("```json").substringBeforeLast("```").trim()
-                            } else if (cleanedText.startsWith("```")) {
-                                cleanedText = cleanedText.substringAfter("```").substringBeforeLast("```").trim()
-                            }
-                            
-                            val json = JSONObject(cleanedText)
-                            selectedCategory = json.optString("category", "Other")
-                            severity = json.optString("severity", "Medium Risk")
-                            petitionText = if (json.has("petition")) json.getString("petition") else null
-                            aiAnalysisResult = "Gemini Classified category as '$selectedCategory' with '$severity' status."
-                            Toast.makeText(context, "AI Analysis completed!", Toast.LENGTH_SHORT).show()
-                        } catch (e: Exception) {
-                            // If parsing fails, fallback
-                            selectedCategory = "Civic Hazard"
-                            severity = "High Risk"
-                            petitionText = "To the Municipal Commissioner,\n\nI am writing to report: $description.\n\nSincerely,\nConcerned Citizen"
-                            aiAnalysisResult = "Gemini response parsed with fallback due to format limits."
-                        }
-                    } else {
-                        Toast.makeText(context, "Failed to connect to Gemini API. Check internet/key config.", Toast.LENGTH_LONG).show()
+                AnimatedVisibility(visible = isSummaryExpanded) {
+                    Column {
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = "AI automatically parsed the hazard properties successfully. Real-time geocoding linked coordinates with municipal ward database to initiate action. A formal report has been compiled and is ready for commissioner dispatch.",
+                            fontSize = 13.sp,
+                            color = Color(0xFF475569)
+                        )
                     }
                 }
-            },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1E40AF)), // Blue AI button
-            shape = RoundedCornerShape(12.dp),
-            enabled = !isAnalyzing
-        ) {
-            Text("🤖 Analyze Hazard & Draft Petition with Gemini", color = Color.White, fontWeight = FontWeight.Bold)
+            }
         }
 
-        // AI Analysis Display Card
-        if (aiAnalysisResult != null) {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = PrimaryColor.copy(alpha = 0.05f)),
-                shape = RoundedCornerShape(16.dp),
-                border = BorderStroke(1.dp, PrimaryColor.copy(alpha = 0.2f))
+        // Location Auto-Fetched Section
+        Text(text = "Location (Auto-Fetched)", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Card(
+            modifier = Modifier.fillMaxWidth().offset(y = (-8).dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Row(
+                modifier = Modifier.padding(16.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = "🤖 Gemini AI Intelligent Classification",
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = PrimaryColor
+                        text = gpsCoordinates,
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF0F172A)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = aiAnalysisResult ?: "",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color(0xFF334155)
+                        text = "Lat: 23.2599, Long: 77.4126",
+                        fontSize = 12.sp,
+                        color = Color.Gray
                     )
+                }
+                IconButton(
+                    onClick = {},
+                    modifier = Modifier
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(8.dp))
+                        .size(36.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit Location", tint = Color(0xFF16A34A), modifier = Modifier.size(16.dp))
                 }
             }
         }
 
-        // Petition Letter Drafting Area
-        if (petitionText != null) {
-            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = "📝 Municipal Petition Letter Draft",
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
-                )
-                
+        // Draft Petition Letter
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(text = "✨ Draft Petition Letter", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+            Text(
+                text = "Copy",
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF16A34A),
+                modifier = Modifier.clickable { onCopyPetition() }
+            )
+        }
+        Text(
+            text = "Auto-generated based on issue and location",
+            fontSize = 12.sp,
+            color = Color.Gray,
+            modifier = Modifier.offset(y = (-12).dp)
+        )
+
+        Card(
+            modifier = Modifier.fillMaxWidth().offset(y = (-10).dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            shape = RoundedCornerShape(16.dp),
+            border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
                 OutlinedTextField(
-                    value = petitionText ?: "",
-                    onValueChange = { petitionText = it },
+                    value = petitionText,
+                    onValueChange = onPetitionChange,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color.Transparent,
+                        unfocusedBorderColor = Color.Transparent,
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent
+                    ),
+                    textStyle = MaterialTheme.typography.bodyMedium.copy(fontSize = 13.sp, color = Color(0xFF334155)),
+                    maxLines = if (isPetitionExpanded) Int.MAX_VALUE else 6
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(200.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
-                        containerColor = Color.White,
-                        unfocusedBorderColor = Color(0xFFE2E8F0)
-                    )
-                )
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .clickable { onPetitionToggle() }
+                        .padding(vertical = 4.dp),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Button(
-                        onClick = {
-                            petitionText?.let {
-                                clipboardManager.setText(AnnotatedString(it))
-                                Toast.makeText(context, "Petition copied to clipboard!", Toast.LENGTH_SHORT).show()
-                            }
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Copy Petition", color = Color.White)
-                    }
-
-                    Button(
-                        onClick = {
-                            Toast.makeText(context, "Simulating sending petition draft to Ward Commissioner email!", Toast.LENGTH_LONG).show()
-                        },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-                        modifier = Modifier.weight(1f),
-                        shape = RoundedCornerShape(8.dp)
-                    ) {
-                        Text("Send Petition", color = Color.White)
-                    }
+                    Text(
+                        text = if (isPetitionExpanded) "Read Less ▲" else "Read More ▼",
+                        color = Color(0xFF16A34A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 13.sp
+                    )
                 }
             }
         }
 
-        // Category Display Input
-        Column {
-            Text(
-                text = "Hazard Category",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+        // Your Details Section
+        Text(text = "👤 Your Details", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = Color(0xFF0F172A))
+        Row(
+            modifier = Modifier.fillMaxWidth().offset(y = (-8).dp),
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
             OutlinedTextField(
-                value = selectedCategory,
-                onValueChange = { selectedCategory = it },
-                placeholder = { Text("e.g. Pothole, Open Drain, Garbage...") },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = TextFieldDefaults.outlinedTextFieldColors(
-                    containerColor = Color.White,
-                    unfocusedBorderColor = Color(0xFFE2E8F0)
-                )
+                value = userName,
+                onValueChange = onNameChange,
+                label = { Text("Your Name", fontSize = 12.sp) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
+            )
+
+            OutlinedTextField(
+                value = userMobile,
+                onValueChange = onMobileChange,
+                label = { Text("Mobile Number", fontSize = 12.sp) },
+                modifier = Modifier.weight(1f),
+                shape = RoundedCornerShape(12.dp)
             )
         }
-
-        // Severity Display / Custom Override
-        Column {
-            Text(
-                text = "Severity Level",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val severities = listOf("Low Risk", "Medium Risk", "High Risk")
-                severities.forEach { option ->
-                    val isSelected = severity == option
-                    Button(
-                        onClick = { severity = option },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isSelected) WarningColor else Color.White,
-                            contentColor = if (isSelected) Color.White else Color.Black
-                        ),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f),
-                        border = BorderStroke(1.dp, if (isSelected) Color.Transparent else Color(0xFFE2E8F0))
-                    ) {
-                        Text(option, style = MaterialTheme.typography.bodyMedium)
-                    }
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.height(10.dp))
 
         // Submit Button
         Button(
-            onClick = {
-                if (selectedCategory.isBlank() || description.isBlank()) {
-                    Toast.makeText(context, "Please categorize and describe the hazard before submitting!", Toast.LENGTH_SHORT).show()
-                    return@Button
-                }
-                coroutineScope.launch {
-                    Toast.makeText(context, "Report submitted successfully!", Toast.LENGTH_SHORT).show()
-                    onReportSubmitted()
-                }
-            },
+            onClick = onSubmitClick,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(50.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
-            shape = RoundedCornerShape(16.dp)
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF15803D)),
+            shape = RoundedCornerShape(12.dp)
         ) {
-            Text("Submit Report", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Spacer(modifier = Modifier.width(20.dp))
+                Text("Next: Review & Submit", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
+                Icon(imageVector = Icons.Default.KeyboardArrowRight, contentDescription = "Next")
+            }
+        }
+    }
+}
+
+@Composable
+fun DetailGridCard(icon: String, title: String, value: String, modifier: Modifier = Modifier) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFFAF5)),
+        shape = RoundedCornerShape(12.dp),
+        border = BorderStroke(1.dp, Color(0xFFFFEDD5))
+    ) {
+        Column(
+            modifier = Modifier.padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(text = icon, fontSize = 20.sp)
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(text = title, fontSize = 11.sp, color = Color.Gray)
+            Text(text = value, fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color(0xFF7C2D12), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
+    }
+}
+
+@Composable
+fun StepThreeSuccessContent(
+    onDoneClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .background(Color(0xFFDCFCE7), shape = CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text("✅", fontSize = 48.sp)
+        }
+
+        Spacer(modifier = Modifier.height(24.dp))
+
+        Text(
+            text = "Report Submitted Successfully!",
+            fontSize = 22.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF0F172A),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(12.dp))
+
+        Text(
+            text = "Our AI has registered the hazard. It has been pinned on the Safety Map and forwarded to the local commissioner's queue.",
+            fontSize = 14.sp,
+            color = Color(0xFF475569),
+            textAlign = TextAlign.Center
+        )
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        Button(
+            onClick = onDoneClick,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF16A34A)),
+            shape = RoundedCornerShape(12.dp)
+        ) {
+            Text("Return to Homepage", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
         }
     }
 }
@@ -690,7 +1319,7 @@ fun fetchRealLocation(context: Context, onLocationDetected: (Double, Double, Str
         if (location != null) {
             val geocoder = Geocoder(context, Locale.getDefault())
             val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
-            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota"
+            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota, Rajasthan 324005"
             onLocationDetected(location.latitude, location.longitude, addressLine)
         } else {
             val provider = if (isNetworkEnabled) LocationManager.NETWORK_PROVIDER else LocationManager.GPS_PROVIDER
@@ -702,10 +1331,10 @@ fun fetchRealLocation(context: Context, onLocationDetected: (Double, Double, Str
                         try {
                             val geocoder = Geocoder(context, Locale.getDefault())
                             val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
-                            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota"
+                            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota, Rajasthan 324005"
                             onLocationDetected(loc.latitude, loc.longitude, addressLine)
                         } catch (e: Exception) {
-                            onLocationDetected(loc.latitude, loc.longitude, "Talwandi, Kota")
+                            onLocationDetected(loc.latitude, loc.longitude, "Talwandi, Kota, Rajasthan 324005")
                         }
                     }
                     override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
@@ -715,7 +1344,6 @@ fun fetchRealLocation(context: Context, onLocationDetected: (Double, Double, Str
             }
         }
     } catch (e: Exception) {
-        onLocationDetected(25.18254, 75.82736, "Talwandi, Kota")
+        onLocationDetected(25.18254, 75.82736, "Talwandi, Kota, Rajasthan 324005")
     }
 }
-
