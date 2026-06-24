@@ -2,34 +2,66 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\HazardController;
+use App\Http\Controllers\CaseController;
 use App\Http\Controllers\UserController;
-use App\Http\Controllers\VerificationController;
+use App\Http\Controllers\AiController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\AnalyticsController;
+use App\Http\Controllers\LogController;
+use App\Http\Controllers\SystemHealthController;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\Auth\LoginController;
+
+// Authentication Routes
+Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::post('login', [LoginController::class, 'login']);
+Route::post('logout', [LoginController::class, 'logout'])->name('logout');
 
 // Redirect root to dashboard
 Route::redirect('/', '/admin/dashboard');
 
-// Admin Panel Routes
-Route::prefix('admin')->name('admin.')->group(function () {
-    // Dashboard Core
+// Admin Panel RoutesProtected by Session Authentication
+Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
+    // Dashboard Core Overview
     Route::get('dashboard', [DashboardController::class, 'index'])->name('dashboard');
-    Route::get('ai', [DashboardController::class, 'aiIntelligence'])->name('ai');
-    Route::get('municipality', [DashboardController::class, 'municipality'])->name('municipality');
 
-    // Hazards Management
-    Route::get('hazards', [HazardController::class, 'index'])->name('hazards.index');
-    Route::get('hazards/{id}', [HazardController::class, 'show'])->name('hazards.show');
-    Route::post('hazards/{id}/verify', [HazardController::class, 'verify'])->name('hazards.verify');
-    Route::post('hazards/{id}/escalate', [HazardController::class, 'escalate'])->name('hazards.escalate');
-    Route::post('hazards/{id}/resolve', [HazardController::class, 'resolve'])->name('hazards.resolve');
-    Route::delete('hazards/{id}/delete', [HazardController::class, 'destroy'])->name('hazards.destroy');
+    // Case Management (Hazards)
+    Route::get('cases', [CaseController::class, 'index'])->name('cases.index');
+    Route::get('cases/{id}', [CaseController::class, 'show'])->name('cases.show');
+    Route::post('cases/{id}/verify', [CaseController::class, 'verify'])->name('cases.verify');
+    Route::post('cases/{id}/reject', [CaseController::class, 'reject'])->name('cases.reject');
+    Route::post('cases/{id}/resolve', [CaseController::class, 'resolve'])->name('cases.resolve');
+    Route::post('cases/{id}/archive', [CaseController::class, 'archive'])->name('cases.archive');
+    Route::delete('cases/{id}/delete', [CaseController::class, 'destroy'])->name('cases.destroy');
 
-    // Users Management
+    // User Directory
     Route::get('users', [UserController::class, 'index'])->name('users.index');
+    Route::get('users/{id}', [UserController::class, 'show'])->name('users.show');
     Route::post('users/{id}/suspend', [UserController::class, 'suspend'])->name('users.suspend');
     Route::post('users/{id}/activate', [UserController::class, 'activate'])->name('users.activate');
-    Route::post('users/{id}/promote', [UserController::class, 'promote'])->name('users.promote');
 
-    // Verification Workflow Panel
-    Route::get('verifications', [VerificationController::class, 'index'])->name('verifications.index');
+    // AI Intelligence Center
+    Route::get('ai', [AiController::class, 'index'])->name('ai');
+    Route::post('ai/config', [AiController::class, 'updateConfig'])->name('ai.config');
+
+    // Notifications Hub (FCM)
+    Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('notifications/send', [NotificationController::class, 'send'])->name('notifications.send');
+
+    // Analytics Reporting
+    Route::get('analytics', [AnalyticsController::class, 'index'])->name('analytics.index');
+
+    // Activity Audit Logs
+    Route::get('logs', [LogController::class, 'index'])->name('logs.index');
+
+    // System Health Metrics
+    Route::get('health', [SystemHealthController::class, 'index'])->name('health.index');
+
+    // System Settings & CRUD Categories
+    Route::get('settings', [SettingsController::class, 'index'])->name('settings.index');
+    Route::post('settings/alerts', [SettingsController::class, 'updateAlerts'])->name('settings.alerts');
+    Route::post('settings/system', [SettingsController::class, 'updateSystem'])->name('settings.system');
+    Route::post('settings/categories', [SettingsController::class, 'storeCategory'])->name('settings.categories.store');
+    Route::post('settings/categories/{id}', [SettingsController::class, 'updateCategory'])->name('settings.categories.update');
+    Route::delete('settings/categories/{id}/delete', [SettingsController::class, 'destroyCategory'])->name('settings.categories.destroy');
 });
