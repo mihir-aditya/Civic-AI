@@ -48,6 +48,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.content.ContextCompat
 import java.util.Locale
+import com.google.android.gms.maps.model.CameraPosition
+import com.google.android.gms.maps.model.LatLng
+import com.google.maps.android.compose.GoogleMap
+import com.google.maps.android.compose.Marker
+import com.google.maps.android.compose.MarkerState
+import com.google.maps.android.compose.rememberCameraPositionState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +64,7 @@ fun HomeScreen(
 ) {
     val context = LocalContext.current
     var currentCityName by remember { mutableStateOf("Chandigarh") }
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
 
     val locationPermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -68,6 +75,9 @@ fun HomeScreen(
             fetchHomeLocation(context) { city ->
                 currentCityName = city
             }
+            fetchCurrentLocationLatLng(context) { latLng ->
+                userLatLng = latLng
+            }
         }
     }
 
@@ -77,6 +87,9 @@ fun HomeScreen(
         if (hasFine || hasCoarse) {
             fetchHomeLocation(context) { city ->
                 currentCityName = city
+            }
+            fetchCurrentLocationLatLng(context) { latLng ->
+                userLatLng = latLng
             }
         } else {
             locationPermissionsLauncher.launch(
@@ -362,6 +375,7 @@ fun HomeScreen(
                 )
                 
                 MapPreviewWidget(
+                    userLatLng = userLatLng,
                     onOpenFullMap = onNavigateToMap
                 )
             }
@@ -533,6 +547,7 @@ fun GridButton(
 
 @Composable
 fun MapPreviewWidget(
+    userLatLng: LatLng?,
     onOpenFullMap: () -> Unit
 ) {
     Card(
@@ -544,94 +559,38 @@ fun MapPreviewWidget(
         border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
-            // Custom drawn mock map view using standard canvas path grids and shapes
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val canvasWidth = size.width
-                val canvasHeight = size.height
-                
-                // Draw light map background
-                drawRect(color = Color(0xFFE2E8F0))
-                
-                // Draw roads (lines)
-                val roadColor = Color.White
-                val roadWidth = 24f
-                
-                // Horizontal roads
-                drawLine(roadColor, Offset(0f, canvasHeight * 0.3f), Offset(canvasWidth, canvasHeight * 0.3f), strokeWidth = roadWidth)
-                drawLine(roadColor, Offset(0f, canvasHeight * 0.7f), Offset(canvasWidth, canvasHeight * 0.7f), strokeWidth = roadWidth)
-                
-                // Vertical roads
-                drawLine(roadColor, Offset(canvasWidth * 0.25f, 0f), Offset(canvasWidth * 0.25f, canvasHeight), strokeWidth = roadWidth)
-                drawLine(roadColor, Offset(canvasWidth * 0.75f, 0f), Offset(canvasWidth * 0.75f, canvasHeight), strokeWidth = roadWidth)
-                
-                // Angled road
-                drawLine(roadColor, Offset(0f, 0f), Offset(canvasWidth, canvasHeight), strokeWidth = roadWidth)
-                
-                // Draw safety heatmap circle (light transparent yellow/red overlays)
-                drawCircle(Color(0x33EF4444), radius = 90f, center = Offset(canvasWidth * 0.7f, canvasHeight * 0.6f))
-                drawCircle(Color(0x44F59E0B), radius = 60f, center = Offset(canvasWidth * 0.7f, canvasHeight * 0.6f))
+            val center = userLatLng ?: LatLng(25.18254, 75.82736) // Fallback to Kota
+            val cameraPositionState = rememberCameraPositionState {
+                position = CameraPosition.fromLatLngZoom(center, 13f)
             }
-            
-            // Render simulated user location radar pulse
-            Box(
-                modifier = Modifier
-                    .offset(x = 120.dp, y = 80.dp)
-                    .size(24.dp)
-                    .background(Color(0x333B82F6), shape = CircleShape),
-                contentAlignment = Alignment.Center
+
+            LaunchedEffect(userLatLng) {
+                if (userLatLng != null) {
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 13f)
+                }
+            }
+
+            GoogleMap(
+                modifier = Modifier.fillMaxSize(),
+                cameraPositionState = cameraPositionState,
+                properties = com.google.maps.android.compose.MapProperties(isMyLocationEnabled = userLatLng != null),
+                uiSettings = com.google.maps.android.compose.MapUiSettings(
+                    zoomControlsEnabled = false,
+                    myLocationButtonEnabled = false
+                )
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .background(Color(0xFF3B82F6), shape = CircleShape)
+                val offset1 = LatLng(center.latitude + 0.003, center.longitude + 0.002)
+                val offset2 = LatLng(center.latitude - 0.002, center.longitude - 0.003)
+                Marker(
+                    state = MarkerState(position = offset1),
+                    title = "Pothole detected"
+                )
+                Marker(
+                    state = MarkerState(position = offset2),
+                    title = "Open Drain reported"
                 )
             }
-            
-            // Map pin markers
-            Text("📍", fontSize = 22.sp, modifier = Modifier.offset(x = 240.dp, y = 40.dp))
-            Text("🚩", fontSize = 18.sp, modifier = Modifier.offset(x = 80.dp, y = 120.dp))
-            Text("⚠️", fontSize = 18.sp, modifier = Modifier.offset(x = 180.dp, y = 100.dp))
-            
-            // Google Attribution Label on the bottom left
-            Text(
-                text = "Google",
-                fontWeight = FontWeight.Bold,
-                fontSize = 11.sp,
-                color = Color.Gray,
-                modifier = Modifier
-                    .align(Alignment.BottomStart)
-                    .padding(8.dp)
-            )
-            
-            // Floating buttons on map
-            // Center location button (bottom right)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-                    .size(36.dp)
-                    .background(Color.White, shape = CircleShape)
-                    .border(1.dp, Color(0xFFE2E8F0), CircleShape)
-                    .clickable { },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("🎯", fontSize = 14.sp)
-            }
-            
-            // Map layer toggle button (top right)
-            Box(
-                modifier = Modifier
-                    .align(Alignment.TopEnd)
-                    .padding(8.dp)
-                    .size(36.dp)
-                    .background(Color.White, shape = CircleShape)
-                    .border(1.dp, Color(0xFFE2E8F0), CircleShape)
-                    .clickable { },
-                contentAlignment = Alignment.Center
-            ) {
-                Text("🥞", fontSize = 14.sp)
-            }
-            
+
             // OPEN FULL MAP button (bottom center)
             Button(
                 onClick = onOpenFullMap,
@@ -803,6 +762,51 @@ fun fetchHomeLocation(context: Context, onCityDetected: (String) -> Unit) {
         }
     } catch (e: Exception) {
         onCityDetected("Chandigarh")
+    }
+}
+
+/**
+ * Fetch current GPS location and invoke callback with LatLng.
+ */
+fun fetchCurrentLocationLatLng(context: Context, onLocationDetected: (LatLng) -> Unit) {
+    try {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        
+        var location: Location? = null
+        if (isNetworkEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            }
+        }
+        if (location == null && isGpsEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            }
+        }
+        
+        if (location != null) {
+            onLocationDetected(LatLng(location.latitude, location.longitude))
+        } else {
+            val provider = if (isNetworkEnabled) LocationManager.NETWORK_PROVIDER else LocationManager.GPS_PROVIDER
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                locationManager.requestSingleUpdate(provider, object : LocationListener {
+                    override fun onLocationChanged(loc: Location) {
+                        onLocationDetected(LatLng(loc.latitude, loc.longitude))
+                    }
+                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                    override fun onProviderEnabled(provider: String) {}
+                    override fun onProviderDisabled(provider: String) {}
+                }, Looper.getMainLooper())
+            }
+        }
+    } catch (e: Exception) {
+        onLocationDetected(LatLng(25.18254, 75.82736))
     }
 }
 

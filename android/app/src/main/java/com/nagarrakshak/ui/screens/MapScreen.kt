@@ -17,6 +17,13 @@ import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.MarkerState
 import com.google.maps.android.compose.rememberCameraPositionState
+import com.google.maps.android.compose.MapProperties
+import com.google.maps.android.compose.MapUiSettings
+import android.Manifest
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
 
 data class HazardMarker(
     val id: String,
@@ -34,6 +41,7 @@ fun GoogleMapView(
     centerLat: Double,
     centerLng: Double,
     zoom: Int = 13,
+    showMyLocation: Boolean = false,
     onNavigateToDetail: (String) -> Unit
 ) {
     val center = LatLng(centerLat, centerLng)
@@ -41,9 +49,15 @@ fun GoogleMapView(
         position = CameraPosition.fromLatLngZoom(center, zoom.toFloat())
     }
 
+    LaunchedEffect(centerLat, centerLng) {
+        cameraPositionState.position = CameraPosition.fromLatLngZoom(LatLng(centerLat, centerLng), zoom.toFloat())
+    }
+
     GoogleMap(
         modifier = modifier,
-        cameraPositionState = cameraPositionState
+        cameraPositionState = cameraPositionState,
+        properties = MapProperties(isMyLocationEnabled = showMyLocation),
+        uiSettings = MapUiSettings(myLocationButtonEnabled = showMyLocation)
     ) {
         markers.forEach { marker ->
             val position = LatLng(marker.latitude, marker.longitude)
@@ -63,6 +77,34 @@ fun GoogleMapView(
 @Composable
 fun MapScreen(onNavigateToDetail: (String) -> Unit) {
     var selectedFilter by remember { mutableStateOf("All") }
+    val context = LocalContext.current
+    var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+
+    val locationPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        if (fineGranted || coarseGranted) {
+            fetchCurrentLocationLatLng(context) { latLng ->
+                userLatLng = latLng
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasFine || hasCoarse) {
+            fetchCurrentLocationLatLng(context) { latLng ->
+                userLatLng = latLng
+            }
+        } else {
+            locationPermissionsLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
 
     val hazardMarkers = remember {
         listOf(
@@ -110,9 +152,10 @@ fun MapScreen(onNavigateToDetail: (String) -> Unit) {
                 GoogleMapView(
                     modifier = Modifier.fillMaxSize(),
                     markers = filteredMarkers,
-                    centerLat = 25.18,
-                    centerLng = 75.83,
+                    centerLat = userLatLng?.latitude ?: 25.18,
+                    centerLng = userLatLng?.longitude ?: 75.83,
                     zoom = 13,
+                    showMyLocation = userLatLng != null,
                     onNavigateToDetail = onNavigateToDetail
                 )
             }
