@@ -15,12 +15,22 @@
     <div class="card card-custom p-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <h5 class="fw-bold m-0"><i class="fa-solid fa-list text-green"></i> Processing History</h5>
-            <form action="{{ route('admin.ai.logs') }}" method="GET" class="d-flex gap-2">
-                <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
-                    <option value="">All Logs</option>
-                    <option value="Success" {{ request('status') === 'Success' ? 'selected' : '' }}>Success Only</option>
-                    <option value="Failed" {{ request('status') === 'Failed' ? 'selected' : '' }}>Failed Only</option>
+            <form action="{{ route('admin.ai.logs') }}" method="GET" class="d-flex gap-2 align-items-center">
+                <select name="status" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">All Statuses</option>
+                    <option value="Success" {{ request('status') === 'Success' ? 'selected' : '' }}>Success</option>
+                    <option value="Failed" {{ request('status') === 'Failed' ? 'selected' : '' }}>Failed</option>
                 </select>
+                <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->name }}" {{ request('category') == $category->name ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                <input type="date" name="date_from" class="form-control form-control-sm" style="width: auto;" value="{{ request('date_from') }}" onchange="this.form.submit()">
+                <span class="text-muted small">to</span>
+                <input type="date" name="date_to" class="form-control form-control-sm" style="width: auto;" value="{{ request('date_to') }}" onchange="this.form.submit()">
+                <a href="{{ route('admin.ai.logs') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="fa-solid fa-xmark"></i></a>
             </form>
         </div>
 
@@ -43,7 +53,7 @@
                         </tr>
                     @else
                         @foreach($logs as $log)
-                        <tr>
+                        <tr style="cursor: pointer;" onclick="window.location='{{ route('admin.cases.show', $log->hazard_id) }}'">
                             <td>#{{ $log->hazard_id ?: 'N/A' }}</td>
                             <td class="fw-semibold">{{ $log->category ?: 'N/A' }}</td>
                             <td>
@@ -57,7 +67,7 @@
                             <td>
                                 <span class="badge bg-{{ $log->status === 'Success' ? 'success' : 'danger' }}">{{ $log->status }}</span>
                             </td>
-                            <td>{{ $log->created_at->format('d M Y, h:i A') }}</td>
+                            <td>{{ $log->created_at->format('d M Y, h:i A') }} <i class="fa-solid fa-chevron-right ms-2 text-muted small"></i></td>
                         </tr>
                         @endforeach
                     @endif

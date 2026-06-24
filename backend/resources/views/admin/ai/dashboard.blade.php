@@ -5,9 +5,23 @@
 @section('content')
 <div class="container-fluid">
     <div class="row mb-4">
-        <div class="col">
+        <div class="col-md-6">
             <h2 class="fw-bold text-green"><i class="fa-solid fa-chart-line"></i> AI Monitoring Center</h2>
             <p class="text-muted">High-level statistics and performance charts for your Gemini AI integrations.</p>
+        </div>
+        <div class="col-md-6 text-md-end">
+            <form action="{{ route('admin.ai.dashboard') }}" method="GET" class="d-flex justify-content-md-end gap-2 align-items-center">
+                <select name="category" class="form-select form-select-sm" style="width: auto;" onchange="this.form.submit()">
+                    <option value="">All Categories</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->name }}" {{ request('category') == $category->name ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                <input type="date" name="date_from" class="form-control form-control-sm" style="width: auto;" value="{{ request('date_from') }}" onchange="this.form.submit()">
+                <span class="text-muted small">to</span>
+                <input type="date" name="date_to" class="form-control form-control-sm" style="width: auto;" value="{{ request('date_to') }}" onchange="this.form.submit()">
+                <a href="{{ route('admin.ai.dashboard') }}" class="btn btn-sm btn-outline-secondary" title="Clear Filters"><i class="fa-solid fa-xmark"></i></a>
+            </form>
         </div>
     </div>
 
@@ -61,10 +75,10 @@
     new Chart(aiCtx, {
         type: 'line',
         data: {
-            labels: ['Day 1', 'Day 2', 'Day 3', 'Day 4', 'Day 5', 'Day 6', 'Day 7'],
+            labels: {!! json_encode(array_reverse($chartLabels)) !!},
             datasets: [{
                 label: 'Average Confidence',
-                data: [92, 94, 91, 95, 96, 94, 96.8],
+                data: {!! json_encode(array_reverse($chartData)) !!},
                 borderColor: '#10B981',
                 backgroundColor: 'rgba(16, 185, 129, 0.1)',
                 fill: true,

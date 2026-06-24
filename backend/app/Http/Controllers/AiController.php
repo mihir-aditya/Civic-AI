@@ -21,19 +21,50 @@ class AiController extends Controller
      */
     public function dashboard(Request $request)
     {
-        $totalRequests = AiLog::count();
-        $successRequests = AiLog::where('status', 'Success')->count();
-        $failedRequests = AiLog::where('status', 'Failed')->count();
+        $categories = \App\Models\Category::where('is_active', true)->get();
+        
+        $logsQuery = AiLog::query();
+        
+        // Apply filters
+        if ($request->filled('category')) {
+            $logsQuery->where('category', $request->category);
+        }
+        
+        if ($request->filled('date_from')) {
+            $logsQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $logsQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $totalRequests = $logsQuery->count();
+        $successRequests = (clone $logsQuery)->where('status', 'Success')->count();
+        $failedRequests = (clone $logsQuery)->where('status', 'Failed')->count();
         $successRate = $totalRequests > 0 ? round(($successRequests / $totalRequests) * 100, 1) : 100;
         
-        $avgConfidence = AiLog::where('status', 'Success')->avg('confidence');
+        $avgConfidence = (clone $logsQuery)->where('status', 'Success')->avg('confidence');
         $avgConfidence = $avgConfidence ? round($avgConfidence * 100, 1) : 0;
         
-        $avgResponseTime = AiLog::avg('response_time');
+        $avgResponseTime = (clone $logsQuery)->avg('response_time');
         $avgResponseTime = $avgResponseTime ? round($avgResponseTime) : 0;
 
+        // Chart Data (Last 7 days, considering filters)
+        $chartLabels = [];
+        $chartData = [];
+        for ($i = 6; $i >= 0; $i--) {
+            $date = now()->subDays($i);
+            $chartLabels[] = $date->format('M d');
+            
+            $dayQuery = clone $logsQuery;
+            $avgDayConf = $dayQuery->whereDate('created_at', $date->toDateString())
+                                   ->where('status', 'Success')
+                                   ->avg('confidence');
+            $chartData[] = $avgDayConf ? round($avgDayConf * 100, 1) : 0;
+        }
+
         return view('admin.ai.dashboard', compact(
-            'totalRequests', 'successRate', 'avgConfidence', 'avgResponseTime', 'failedRequests'
+            'totalRequests', 'successRate', 'avgConfidence', 'avgResponseTime', 'failedRequests', 'categories', 'chartLabels', 'chartData'
         ));
     }
 
@@ -42,14 +73,27 @@ class AiController extends Controller
      */
     public function logs(Request $request)
     {
+        $categories = \App\Models\Category::where('is_active', true)->get();
         $logsQuery = AiLog::with('hazard');
         
         if ($request->filled('status')) {
             $logsQuery->where('status', $request->status);
         }
         
-        $logs = $logsQuery->orderBy('created_at', 'desc')->paginate(15);
+        if ($request->filled('category')) {
+            $logsQuery->where('category', $request->category);
+        }
+        
+        if ($request->filled('date_from')) {
+            $logsQuery->whereDate('created_at', '>=', $request->date_from);
+        }
+        
+        if ($request->filled('date_to')) {
+            $logsQuery->whereDate('created_at', '<=', $request->date_to);
+        }
+        
+        $logs = $logsQuery->orderBy('created_at', 'desc')->paginate(15)->withQueryString();
 
-        return view('admin.ai.logs', compact('logs'));
+        return view('admin.ai.logs', compact('logs', 'categories'));
     }
 }
