@@ -50,30 +50,70 @@
         <!-- AI Configuration -->
         <div class="col-lg-6">
             <div class="card card-custom p-4 h-100">
-                <h5 class="fw-bold mb-4"><i class="fa-solid fa-sliders text-green"></i> Google Gemini Configuration</h5>
-                <form action="{{ route('admin.ai.config') }}" method="POST">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="fw-bold m-0"><i class="fa-solid fa-sliders text-green"></i> AI Configuration</h5>
+                    <a href="{{ route('admin.ai-settings.history') }}" class="btn btn-sm btn-outline-secondary">
+                        <i class="fa-solid fa-history"></i> Prompt History
+                    </a>
+                </div>
+                <form action="{{ route('admin.ai-settings.update') }}" method="POST">
                     @csrf
-                    <div class="mb-3">
-                        <label class="form-label text-muted small">Gemini API Key</label>
-                        <input type="password" name="gemini_api_key" class="form-control form-control-sm" placeholder="AIzaSy..." value="{{ $settings['gemini_api_key'] ?? '' }}">
+                    @method('PUT')
+                    
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Provider</label>
+                            <select name="provider" class="form-select form-select-sm">
+                                <option value="gemini" {{ $settings->provider === 'gemini' ? 'selected' : '' }}>Google Gemini</option>
+                                <option value="openai" {{ $settings->provider === 'openai' ? 'selected' : '' }}>OpenAI</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted small">Model Name</label>
+                            <input type="text" name="model_name" class="form-control form-control-sm" value="{{ $settings->model_name }}">
+                        </div>
                     </div>
+
                     <div class="mb-3">
-                        <label class="form-label text-muted small">Confidence Threshold (0.0 to 1.0)</label>
-                        <input type="number" step="0.1" name="confidence_threshold" class="form-control form-control-sm" value="{{ $settings['confidence_threshold'] ?? '0.7' }}">
+                        <label class="form-label text-muted small">API Key <small>(Leave blank to keep existing)</small></label>
+                        <input type="password" name="api_key" class="form-control form-control-sm" placeholder="Encrypted securely...">
                     </div>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-muted small">Confidence Thr. (0-1)</label>
+                            <input type="number" step="0.01" name="confidence_threshold" class="form-control form-control-sm" value="{{ $settings->confidence_threshold }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-muted small">Temperature (0-2)</label>
+                            <input type="number" step="0.1" name="temperature" class="form-control form-control-sm" value="{{ $settings->temperature }}">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label text-muted small">Max Tokens</label>
+                            <input type="number" name="max_tokens" class="form-control form-control-sm" value="{{ $settings->max_tokens }}">
+                        </div>
+                    </div>
+
                     <div class="mb-3">
                         <label class="form-label text-muted small">Classification System Prompt</label>
-                        <textarea name="classification_prompt" class="form-control form-control-sm" rows="3">{{ $settings['classification_prompt'] ?? 'Classify this hazard...' }}</textarea>
+                        <textarea name="classification_prompt" class="form-control form-control-sm" rows="3">{{ $settings->classification_prompt }}</textarea>
                     </div>
+
+                    <div class="mb-3">
+                        <label class="form-label text-muted small">Change Reason <small class="text-danger">(Required if changing prompt)</small></label>
+                        <input type="text" name="change_reason" class="form-control form-control-sm" placeholder="Why are you updating the prompt?">
+                    </div>
+
                     <div class="mb-3 form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="auto_classification" id="autoClassify" {{ ($settings['auto_classification'] ?? '1') === '1' ? 'checked' : '' }}>
+                        <input class="form-check-input" type="checkbox" name="auto_classification" id="autoClassify" {{ $settings->auto_classification ? 'checked' : '' }}>
                         <label class="form-check-label text-muted small" for="autoClassify">Auto Classification on Upload</label>
                     </div>
                     <div class="mb-4 form-check form-switch">
-                        <input class="form-check-input" type="checkbox" name="auto_severity_detection" id="autoSeverity" {{ ($settings['auto_severity_detection'] ?? '1') === '1' ? 'checked' : '' }}>
+                        <input class="form-check-input" type="checkbox" name="auto_severity_detection" id="autoSeverity" {{ $settings->auto_severity_detection ? 'checked' : '' }}>
                         <label class="form-check-label text-muted small" for="autoSeverity">Auto Severity Detection</label>
                     </div>
-                    <button type="submit" class="btn btn-sm btn-success w-100 rounded-3 py-2 fw-semibold">Save Settings</button>
+                    
+                    <button type="submit" class="btn btn-sm btn-success w-100 rounded-3 py-2 fw-semibold">Save Configuration</button>
                 </form>
             </div>
         </div>

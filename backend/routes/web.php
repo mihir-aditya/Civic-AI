@@ -11,6 +11,7 @@ use App\Http\Controllers\LogController;
 use App\Http\Controllers\SystemHealthController;
 use App\Http\Controllers\SettingsController;
 use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Admin\AiSettingsController;
 
 // Authentication Routes
 Route::get('login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -43,6 +44,11 @@ Route::prefix('admin')->name('admin.')->middleware('auth')->group(function () {
     // AI Intelligence Center
     Route::get('ai', [AiController::class, 'index'])->name('ai');
     Route::post('ai/config', [AiController::class, 'updateConfig'])->name('ai.config');
+
+    // AI Settings Management
+    Route::get('ai-settings', [AiSettingsController::class, 'index'])->name('ai-settings.index');
+    Route::put('ai-settings', [AiSettingsController::class, 'update'])->name('ai-settings.update');
+    Route::get('ai-settings/history', [AiSettingsController::class, 'history'])->name('ai-settings.history');
 
     // Notifications Hub (FCM)
     Route::get('notifications', [NotificationController::class, 'index'])->name('notifications.index');
