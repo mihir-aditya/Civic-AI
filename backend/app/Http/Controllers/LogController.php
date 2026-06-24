@@ -20,8 +20,6 @@ class LogController extends Controller
         }
         $activities = $activityQuery->orderBy('created_at', 'desc')->paginate(15, ['*'], 'activity_page');
 
-        $aiLogs = AiLog::with('hazard')->orderBy('created_at', 'desc')->paginate(15, ['*'], 'ai_page');
-
-        return view('admin.logs.index', compact('activities', 'aiLogs', 'type'));
+        return view('admin.logs.index', compact('activities', 'type'));
     }
 }

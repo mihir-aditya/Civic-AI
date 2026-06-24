@@ -24,41 +24,60 @@
 
     <div class="row">
         <!-- Citizen & Admin Audit Stream -->
-        <div class="col-lg-7 mb-4">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="fw-bold mb-4"><i class="fa-solid fa-users-gear text-green"></i> Activity Audit Stream</h5>
+        <div class="col-12 mb-4">
+            <div class="card card-custom p-4 h-100 border-0 shadow-sm">
+                <h5 class="fw-bold mb-4"><i class="fa-solid fa-users-gear text-green"></i> Global Activity Audit Stream</h5>
                 
                 <div class="table-responsive">
-                    <table class="table align-middle" style="font-size:0.85rem;">
-                        <thead>
+                    <table class="table align-middle table-hover" style="font-size:0.9rem;">
+                        <thead class="table-light">
                             <tr>
                                 <th>User</th>
                                 <th>Scope</th>
-                                <th>Action</th>
+                                <th>Action Taken</th>
                                 <th>IP Address</th>
-                                <th>Date</th>
+                                <th>Date & Time</th>
                             </tr>
                         </thead>
                         <tbody>
                             @if($activities->isEmpty())
                                 <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">No activity logs recorded.</td>
+                                    <td colspan="5" class="text-center text-muted py-5">
+                                        <i class="fa-solid fa-folder-open fa-2x mb-3 text-light"></i><br>
+                                        No activity logs recorded.
+                                    </td>
                                 </tr>
                             @else
                                 @foreach($activities as $activity)
                                 <tr>
-                                    <td class="fw-semibold text-dark">{{ $activity->user ? $activity->user->name : 'System' }}</td>
+                                    <td class="fw-semibold text-dark">
+                                        @if($activity->user)
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="bg-secondary rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                    {{ substr($activity->user->name, 0, 1) }}
+                                                </div>
+                                                <a href="{{ route('admin.users.show', $activity->user->id) }}" class="text-decoration-none text-dark">{{ $activity->user->name }}</a>
+                                            </div>
+                                        @else
+                                            <div class="d-flex align-items-center gap-2">
+                                                <div class="bg-dark rounded-circle d-flex align-items-center justify-content-center text-white" style="width: 32px; height: 32px; font-size: 0.8rem;">
+                                                    <i class="fa-solid fa-robot"></i>
+                                                </div>
+                                                <span>System</span>
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td>
-                                        <span class="badge bg-light text-{{ $activity->type === 'Admin' ? 'danger border border-danger' : 'primary border border-primary' }}">
+                                        <span class="badge bg-light text-{{ $activity->type === 'Admin' ? 'danger border border-danger' : 'primary border border-primary' }} px-3 py-2 rounded-pill">
                                             {{ $activity->type }}
                                         </span>
                                     </td>
                                     <td>
-                                        <span class="d-block fw-bold">{{ $activity->action }}</span>
+                                        <span class="d-block fw-bold text-dark">{{ $activity->action }}</span>
                                         <small class="text-muted">{{ $activity->description }}</small>
                                     </td>
-                                    <td><code>{{ $activity->ip_address }}</code></td>
-                                    <td>{{ $activity->created_at->format('d M, H:i') }}</td>
+                                    <td><code class="bg-light p-1 rounded text-secondary">{{ $activity->ip_address }}</code></td>
+                                    <td class="text-nowrap">{{ $activity->created_at->format('d M Y, H:i') }}</td>
                                 </tr>
                                 @endforeach
                             @endif
@@ -67,55 +86,6 @@
                 </div>
                 <div class="mt-3">
                     {{ $activities->appends(['type' => $type])->links() }}
-                </div>
-            </div>
-        </div>
-
-        <!-- AI Performance Log -->
-        <div class="col-lg-5 mb-4">
-            <div class="card card-custom p-4 h-100">
-                <h5 class="fw-bold mb-4"><i class="fa-solid fa-microchip text-green"></i> AI Engine Processing Logs</h5>
-                
-                <div class="table-responsive">
-                    <table class="table align-middle" style="font-size:0.85rem;">
-                        <thead>
-                            <tr>
-                                <th>Case ID</th>
-                                <th>Category</th>
-                                <th>Confidence</th>
-                                <th>Latency</th>
-                                <th>State</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @if($aiLogs->isEmpty())
-                                <tr>
-                                    <td colspan="5" class="text-center text-muted py-3">No AI logs recorded.</td>
-                                </tr>
-                            @else
-                                @foreach($aiLogs as $log)
-                                <tr>
-                                    <td>#{{ $log->hazard_id }}</td>
-                                    <td class="fw-semibold text-dark">{{ $log->category ?: 'N/A' }}</td>
-                                    <td>
-                                        @if($log->confidence)
-                                            <span class="fw-bold text-success">{{ round($log->confidence * 100) }}%</span>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
-                                    <td>{{ $log->response_time }}ms</td>
-                                    <td>
-                                        <span class="badge bg-{{ $log->status === 'Success' ? 'success' : 'danger' }}">{{ $log->status }}</span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            @endif
-                        </tbody>
-                    </table>
-                </div>
-                <div class="mt-3">
-                    {{ $aiLogs->links() }}
                 </div>
             </div>
         </div>
