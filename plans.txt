@@ -1,0 +1,592 @@
+# Android App UI/UX Design Prompt
+
+Design a modern, premium, production-ready Android application called **NagarRakshak** (Community Safety & Hazard Alert Platform).
+
+The app's mission is to help citizens report public hazards, receive alerts about dangerous locations, verify community reports, and make cities safer.
+
+## Design Style
+
+* Modern Material 3 Design
+* Premium, clean, minimalist interface
+* Green and white color palette
+* High-quality shadows and elevation
+* Rounded corners (16px-24px)
+* Smooth micro-interactions
+* Google Maps inspired elements
+* Mobile-first UX
+* Accessibility friendly
+* Native Android feel
+* Professional government-tech startup appearance
+
+## Brand Identity
+
+App Name:
+NagarRakshak
+
+Tagline:
+Report. Alert. Prevent.
+
+Primary Color:
+#16A34A
+
+Secondary Color:
+#22C55E
+
+Danger Color:
+#EF4444
+
+Warning Color:
+#F59E0B
+
+Safe Color:
+#10B981
+
+Background:
+#F8FAFC
+
+## Home Screen
+
+### Header Section
+
+Display:
+
+* App Logo
+* NagarRakshak Branding
+* Notification Bell
+* User Current Location
+* Weather Information
+
+Example:
+
+Kota, Rajasthan
+Sector 7, Talwandi
+
+Weather:
+28°C
+
+### Welcome Section
+
+Good Morning 👋
+
+Let's make our community safer together.
+
+### Search Bar
+
+Search:
+
+* Location
+* Hazard
+* Area
+* Ward
+
+### Primary Action Card
+
+Large Hero Card:
+
+"Report a Hazard"
+
+Button:
+
+* Report Now
+
+Description:
+
+Help others by reporting hazards in your area.
+
+### Quick Hazard Categories
+
+Grid Cards:
+
+* Pothole
+* Open Manhole
+* Open Drain
+* Waterlogging
+* Broken Streetlight
+* Garbage
+* Damaged Road
+* More
+
+### Hazards Near You
+
+Interactive Map Widget
+
+Show:
+
+* High Risk
+* Medium Risk
+* Low Risk
+
+Colored Pins:
+
+Red = High Risk
+
+Orange = Medium Risk
+
+Green = Low Risk
+
+### Recent Reports
+
+Report Card Layout
+
+Show:
+
+* Hazard Image
+* Hazard Title
+* Location
+* Verification Status
+* Time
+* Severity Badge
+
+Example:
+
+Pothole on Road
+
+Talwandi, Kota
+
+Verified
+
+2 Hours Ago
+
+High Risk
+
+### Bottom Navigation
+
+Home
+
+Map
+
+Report
+
+Alerts
+
+Profile
+
+Floating Center Action Button:
+
+* Report
+
+---
+
+## Report Hazard Screen
+
+Features:
+
+* Capture Photo
+* Upload Image
+* GPS Auto Detection
+* Hazard Category Selection
+* Description Input
+* Severity Suggestion
+* AI Analysis Result
+* Submit Button
+
+After image upload:
+
+Gemini AI should automatically:
+
+* Detect Hazard
+* Suggest Category
+* Estimate Severity
+* Generate Summary
+
+---
+
+## Hazard Details Screen
+
+Display:
+
+* Full Hazard Image
+* Location Map
+* Severity Score
+* Verification Count
+* Description
+* AI Analysis
+* Report History
+
+Actions:
+
+* Verify
+* Add Evidence
+* Share
+* Mark Resolved
+
+---
+
+## Alerts Screen
+
+Display:
+
+Nearby Hazards
+
+Critical Hazards
+
+Route Alerts
+
+Emergency Alerts
+
+Examples:
+
+⚠ Open Drain 150m Ahead
+
+⚠ Waterlogging Nearby
+
+⚠ High Risk Road Ahead
+
+---
+
+## Community Leaderboard
+
+Badges:
+
+* Contributor
+* Safety Reporter
+* Community Guardian
+* Civic Champion
+* Community Hero
+
+Show:
+
+Points
+
+Reports Submitted
+
+Reports Verified
+
+Impact Score
+
+---
+
+## Profile Screen
+
+Display:
+
+* Name
+* Reputation
+* Badges
+* Reports Submitted
+* Reports Verified
+* Areas Covered
+
+---
+
+## UX Requirements
+
+* Responsive Design
+* Dark Mode Ready
+* Offline Reporting Support
+* Real-time Updates
+* Push Notification Support
+* Voice Alert Support
+* Maps Integration
+* AI Powered Classification
+* Premium Startup Quality UI
+
+The final design should look like a combination of Google Maps, Swiggy, Uber, and modern civic-tech platforms while maintaining a clean and trustworthy public-safety identity.
+
+
+Backend Folder
+
+# Laravel Blade Admin Dashboard Prompt
+
+Design a modern, enterprise-grade Admin Dashboard for NagarRakshak.
+
+Technology:
+
+Laravel 12 + Blade + Bootstrap 5 + Chart.js + DataTables
+
+Purpose:
+
+Manage reported hazards, community reports, verification workflows, AI analysis, users, and city analytics.
+
+---
+
+# Design Style
+
+* Premium SaaS Dashboard
+* Clean White Theme
+* Green Accent Color
+* Professional Government-Tech Appearance
+* Responsive Desktop Layout
+* Modern Cards & Analytics Widgets
+
+---
+
+# Dashboard Overview
+
+## Top Statistics Cards
+
+Total Reports
+
+Verified Reports
+
+Resolved Issues
+
+Active Hazards
+
+Critical Hazards
+
+Total Users
+
+Today's Reports
+
+Pending Verification
+
+---
+
+## Interactive Map
+
+Google Maps Dashboard
+
+Show:
+
+* Hazard Locations
+* Severity Colors
+* Clustering
+* Filters
+
+Map Legend:
+
+Red = High Risk
+
+Orange = Medium Risk
+
+Green = Low Risk
+
+---
+
+## Analytics Charts
+
+### Reports by Category
+
+Pie Chart
+
+Categories:
+
+* Potholes
+* Open Drains
+* Open Manholes
+* Waterlogging
+* Streetlights
+* Garbage
+
+### Monthly Reports
+
+Line Chart
+
+### Resolution Rate
+
+Bar Chart
+
+### Risk Distribution
+
+Donut Chart
+
+---
+
+# Hazard Management Module
+
+DataTable
+
+Columns:
+
+ID
+
+Image
+
+Category
+
+Location
+
+Severity
+
+Status
+
+Verification Count
+
+Created By
+
+Created Date
+
+Actions
+
+Actions:
+
+View
+
+Edit
+
+Assign
+
+Resolve
+
+Delete
+
+---
+
+# Hazard Details Page
+
+Show:
+
+* Images
+* AI Analysis
+* GPS Coordinates
+* Verification History
+* Resolution Timeline
+
+Buttons:
+
+Verify
+
+Escalate
+
+Mark Resolved
+
+Download Report
+
+Generate Complaint
+
+---
+
+# User Management
+
+Display:
+
+* User Profile
+* Reputation Score
+* Reports Submitted
+* Verification Count
+* Badge Level
+
+Actions:
+
+Activate
+
+Suspend
+
+Promote
+
+Export
+
+---
+
+# Community Verification Panel
+
+Pending Verifications
+
+Conflicting Reports
+
+Duplicate Reports
+
+Trust Score Analysis
+
+Community Votes
+
+---
+
+# AI Intelligence Dashboard
+
+Show:
+
+* AI Classified Reports
+* Confidence Scores
+* Risk Scores
+* AI Recommendations
+* Predicted Critical Areas
+
+Widgets:
+
+Most Dangerous Locations
+
+Most Reported Hazards
+
+Risk Heatmap
+
+Prediction Trends
+
+---
+
+# Municipality Dashboard
+
+Track:
+
+Assigned Issues
+
+Resolved Issues
+
+Pending Issues
+
+Average Resolution Time
+
+Ward-wise Performance
+
+Area-wise Performance
+
+---
+
+# Notification Center
+
+Push Notifications
+
+SMS Alerts
+
+Emergency Broadcasts
+
+User Alert History
+
+---
+
+# Reports & Exports
+
+Generate:
+
+PDF Reports
+
+Excel Reports
+
+Ward Reports
+
+Monthly Reports
+
+Critical Hazard Reports
+
+---
+
+# Roles & Permissions
+
+Super Admin
+
+City Admin
+
+Moderator
+
+Verification Officer
+
+Municipality Officer
+
+Community Manager
+
+---
+
+# Additional Features
+
+Dark Mode
+
+Advanced Filters
+
+Audit Logs
+
+Activity Timeline
+
+Real-time Notifications
+
+Bulk Actions
+
+Mobile Responsive Layout
+
+Modern DataTables
+
+Chart.js Analytics
+
+Interactive Maps
+
+The dashboard should feel like a professional civic-tech platform used by municipalities, NGOs, and public safety organizations, with a clean SaaS-inspired interface similar to Stripe Dashboard, Linear, Notion Analytics, and modern government technology platforms.

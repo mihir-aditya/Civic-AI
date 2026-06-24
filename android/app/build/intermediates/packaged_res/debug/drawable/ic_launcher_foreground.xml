@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    width="108dp"
+    height="108dp"
+    viewportWidth="108"
+    viewportHeight="108">
+    <!-- Outer shield -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M54,20 C64,25 78,25 84,28 C84,50 74,68 54,80 C34,68 24,50 24,28 C30,25 44,25 54,20 Z" />
+    <!-- Inner emblem (cross or checkmark representing verification and safety) -->
+    <path
+        android:fillColor="#16A34A"
+        android:pathData="M50,42 L42,50 L48,56 L66,38 L70,42 L48,64 L38,54 Z" />
+</vector>
