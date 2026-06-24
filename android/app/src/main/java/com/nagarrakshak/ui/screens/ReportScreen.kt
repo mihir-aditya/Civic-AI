@@ -31,6 +31,28 @@ import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
 
+import android.Manifest
+import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
+import android.os.Looper
+import android.util.Base64
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.result.launch
+import androidx.compose.foundation.Image
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.core.content.ContextCompat
+import java.io.ByteArrayOutputStream
+import java.util.Locale
+
 // Tiny 1x1 black JPEG base64 string to satisfy image input requirement for Gemini API camera simulation
 const val MOCK_TINY_JPEG_BASE64 = "/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA="
 
@@ -52,54 +74,169 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
     var gpsCoordinates by remember { mutableStateOf("Detecting GPS...") }
     var showDialog by remember { mutableStateOf(false) }
 
-    // Simulate GPS detection on load
+    var capturedBitmap by remember { mutableStateOf<Bitmap?>(null) }
+    var stagedImageBase64 by remember { mutableStateOf<String?>(null) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            capturedBitmap = bitmap
+            selectedPhotoOption = "Captured Camera Photo"
+            val byteArrayOutputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
+            val byteArray = byteArrayOutputStream.toByteArray()
+            stagedImageBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+            if (description.isBlank()) {
+                description = "Analyzed hazard from captured camera photo."
+            }
+            Toast.makeText(context, "Image captured successfully!", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val galleryLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null) {
+            try {
+                val inputStream = context.contentResolver.openInputStream(uri)
+                val bitmap = BitmapFactory.decodeStream(inputStream)
+                if (bitmap != null) {
+                    capturedBitmap = bitmap
+                    selectedPhotoOption = "Uploaded Gallery Photo"
+                    val byteArrayOutputStream = ByteArrayOutputStream()
+                    bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
+                    val byteArray = byteArrayOutputStream.toByteArray()
+                    stagedImageBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    if (description.isBlank()) {
+                        description = "Analyzed hazard from uploaded gallery photo."
+                    }
+                    Toast.makeText(context, "Image uploaded successfully!", Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                Toast.makeText(context, "Failed to load image: ${e.message}", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch()
+        } else {
+            Toast.makeText(context, "Camera permission is required to capture photos.", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    val locationPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        if (fineGranted || coarseGranted) {
+            fetchRealLocation(context) { lat, lng, address ->
+                gpsCoordinates = "Latitude: $lat, Longitude: $lng\n$address"
+            }
+        } else {
+            gpsCoordinates = "GPS Permission Denied. Fallback: Talwandi, Kota"
+        }
+    }
+
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1000)
-        gpsCoordinates = "Latitude: 25.18254, Longitude: 75.82736 (Talwandi, Kota)"
+        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasFine || hasCoarse) {
+            fetchRealLocation(context) { lat, lng, address ->
+                gpsCoordinates = "Latitude: $lat, Longitude: $lng\n$address"
+            }
+        } else {
+            locationPermissionsLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
     }
 
     if (showDialog) {
         AlertDialog(
             onDismissRequest = { showDialog = false },
-            title = { Text("Capture or Upload Civic Hazard Image", fontWeight = FontWeight.Bold) },
+            title = { Text("Add Civic Hazard Image", fontWeight = FontWeight.Bold) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Text("Select a mock camera capture option for simulation:", fontSize = 14.sp)
+                    Text("Select an option to add a hazard image:", fontSize = 14.sp)
                     
                     Button(
                         onClick = {
-                            selectedPhotoOption = "Pothole Photo"
-                            description = "There is a deep asphalt pothole in the middle of Sector 17 main road. It is highly dangerous for bikes."
+                            val permission = Manifest.permission.CAMERA
+                            val isGranted = ContextCompat.checkSelfPermission(context, permission) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                            if (isGranted) {
+                                cameraLauncher.launch()
+                            } else {
+                                cameraPermissionLauncher.launch(permission)
+                            }
                             showDialog = false
                         },
                         colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("📷 Capture Mock Pothole Photo")
+                        Text("📷 Open Camera & Take Photo")
+                    }
+
+                    Button(
+                        onClick = {
+                            galleryLauncher.launch("image/*")
+                            showDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🖼️ Select from Gallery")
+                    }
+
+                    HorizontalDivider(color = Color(0xFFE2E8F0), thickness = 1.dp, modifier = Modifier.padding(vertical = 4.dp))
+
+                    Text("Or select a mock simulation photo:", fontSize = 12.sp, color = Color.Gray)
+
+                    Button(
+                        onClick = {
+                            selectedPhotoOption = "Pothole Photo"
+                            description = "There is a deep asphalt pothole in the middle of Sector 17 main road. It is highly dangerous for bikes."
+                            stagedImageBase64 = MOCK_TINY_JPEG_BASE64
+                            capturedBitmap = null
+                            showDialog = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("🧪 Mock Pothole Photo")
                     }
                     
                     Button(
                         onClick = {
                             selectedPhotoOption = "Open Drain Photo"
                             description = "An uncovered roadside gutter drainage has been left open near the school gate. Pedestrians can fall in."
+                            stagedImageBase64 = MOCK_TINY_JPEG_BASE64
+                            capturedBitmap = null
                             showDialog = false
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("📷 Capture Mock Open Drain Photo")
+                        Text("🧪 Mock Open Drain Photo")
                     }
 
                     Button(
                         onClick = {
                             selectedPhotoOption = "Garbage Pile Photo"
                             description = "A massive public trash pile is blocking the sidewalk in Ward 5, emitting bad odor and attracting flies."
+                            stagedImageBase64 = MOCK_TINY_JPEG_BASE64
+                            capturedBitmap = null
                             showDialog = false
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = PrimaryColor),
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF475569)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text("📷 Capture Mock Garbage Dump Photo")
+                        Text("🧪 Mock Garbage Dump Photo")
                     }
                 }
             },
@@ -148,16 +285,44 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                 }
             } else if (selectedPhotoOption != null) {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(PrimaryColor.copy(alpha = 0.1f)),
+                    modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.Center
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("📷 Image Staged successfully", fontWeight = FontWeight.Bold, color = PrimaryColor)
-                        Text("[$selectedPhotoOption]", fontSize = 12.sp, color = Color.Gray)
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text("Tap to change image", fontSize = 11.sp, color = Color.Gray)
+                    if (capturedBitmap != null) {
+                        Image(
+                            bitmap = capturedBitmap!!.asImageBitmap(),
+                            contentDescription = "Captured Image",
+                            modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(16.dp)),
+                            contentScale = ContentScale.Crop
+                        )
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(Color.Black.copy(alpha = 0.4f))
+                                .padding(8.dp),
+                            contentAlignment = Alignment.BottomCenter
+                        ) {
+                            Text(
+                                text = "Staged: $selectedPhotoOption. Tap to change.",
+                                color = Color.White,
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    } else {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .background(PrimaryColor.copy(alpha = 0.1f)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                Text("📷 Image Staged successfully", fontWeight = FontWeight.Bold, color = PrimaryColor)
+                                Text("[$selectedPhotoOption]", fontSize = 12.sp, color = Color.Gray)
+                                Spacer(modifier = Modifier.height(4.dp))
+                                Text("Tap to change image", fontSize = 11.sp, color = Color.Gray)
+                            }
+                        }
                     }
                 }
             } else {
@@ -225,7 +390,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                 
                 coroutineScope.launch {
                     isAnalyzing = true
-                    val response = callGeminiApi(description, if (selectedPhotoOption != null) MOCK_TINY_JPEG_BASE64 else null)
+                    val response = callGeminiApi(description, stagedImageBase64)
                     isAnalyzing = false
                     
                     if (response != null) {
@@ -494,6 +659,61 @@ suspend fun callGeminiApi(descriptionText: String, imageBase64: String? = null):
     } catch (e: Exception) {
         android.util.Log.e("GeminiAPI", "Failed to call Gemini API", e)
         null
+    }
+}
+
+/**
+ * Fetch the device's real precise GPS location using LocationManager and reverse geocode to details.
+ */
+fun fetchRealLocation(context: Context, onLocationDetected: (Double, Double, String) -> Unit) {
+    try {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        
+        var location: Location? = null
+        if (isNetworkEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            }
+        }
+        if (location == null && isGpsEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            }
+        }
+        
+        if (location != null) {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota"
+            onLocationDetected(location.latitude, location.longitude, addressLine)
+        } else {
+            val provider = if (isNetworkEnabled) LocationManager.NETWORK_PROVIDER else LocationManager.GPS_PROVIDER
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                locationManager.requestSingleUpdate(provider, object : LocationListener {
+                    override fun onLocationChanged(loc: Location) {
+                        try {
+                            val geocoder = Geocoder(context, Locale.getDefault())
+                            val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
+                            val addressLine = addresses?.firstOrNull()?.getAddressLine(0) ?: "Talwandi, Kota"
+                            onLocationDetected(loc.latitude, loc.longitude, addressLine)
+                        } catch (e: Exception) {
+                            onLocationDetected(loc.latitude, loc.longitude, "Talwandi, Kota")
+                        }
+                    }
+                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                    override fun onProviderEnabled(provider: String) {}
+                    override fun onProviderDisabled(provider: String) {}
+                }, Looper.getMainLooper())
+            }
+        }
+    } catch (e: Exception) {
+        onLocationDetected(25.18254, 75.82736, "Talwandi, Kota")
     }
 }
 

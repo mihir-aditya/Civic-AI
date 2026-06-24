@@ -29,6 +29,26 @@ import com.nagarrakshak.ui.theme.DangerColor
 import com.nagarrakshak.ui.theme.PrimaryColor
 import com.nagarrakshak.ui.theme.WarningColor
 
+import android.Manifest
+import android.content.Context
+import android.location.Geocoder
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
+import android.os.Bundle
+import android.os.Looper
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.content.ContextCompat
+import java.util.Locale
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -36,6 +56,35 @@ fun HomeScreen(
     onNavigateToDetail: (String) -> Unit,
     onNavigateToMap: () -> Unit
 ) {
+    val context = LocalContext.current
+    var currentCityName by remember { mutableStateOf("Chandigarh") }
+
+    val locationPermissionsLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        val fineGranted = permissions[Manifest.permission.ACCESS_FINE_LOCATION] ?: false
+        val coarseGranted = permissions[Manifest.permission.ACCESS_COARSE_LOCATION] ?: false
+        if (fineGranted || coarseGranted) {
+            fetchHomeLocation(context) { city ->
+                currentCityName = city
+            }
+        }
+    }
+
+    LaunchedEffect(Unit) {
+        val hasFine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        val hasCoarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+        if (hasFine || hasCoarse) {
+            fetchHomeLocation(context) { city ->
+                currentCityName = city
+            }
+        } else {
+            locationPermissionsLauncher.launch(
+                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+            )
+        }
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -74,7 +123,7 @@ fun HomeScreen(
                         modifier = Modifier.clickable { onNavigateToMap() }
                     ) {
                         Text(
-                            text = "Sector 17, Chandigarh",
+                            text = currentCityName,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
                             color = Color(0xFF0F172A)
@@ -699,6 +748,61 @@ fun NearbyAlertCard(
                 }
             }
         }
+    }
+}
+
+/**
+ * Fetch home location (city name) using LocationManager and reverse geocoding.
+ */
+fun fetchHomeLocation(context: Context, onCityDetected: (String) -> Unit) {
+    try {
+        val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
+        val isGpsEnabled = locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)
+        val isNetworkEnabled = locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)
+        
+        var location: Location? = null
+        if (isNetworkEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                location = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)
+            }
+        }
+        if (location == null && isGpsEnabled) {
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            }
+        }
+        
+        if (location != null) {
+            val geocoder = Geocoder(context, Locale.getDefault())
+            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+            val cityName = addresses?.firstOrNull()?.locality ?: addresses?.firstOrNull()?.subAdminArea ?: "Chandigarh"
+            onCityDetected(cityName)
+        } else {
+            val provider = if (isNetworkEnabled) LocationManager.NETWORK_PROVIDER else LocationManager.GPS_PROVIDER
+            if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) {
+                locationManager.requestSingleUpdate(provider, object : LocationListener {
+                    override fun onLocationChanged(loc: Location) {
+                        try {
+                            val geocoder = Geocoder(context, Locale.getDefault())
+                            val addresses = geocoder.getFromLocation(loc.latitude, loc.longitude, 1)
+                            val cityName = addresses?.firstOrNull()?.locality ?: addresses?.firstOrNull()?.subAdminArea ?: "Chandigarh"
+                            onCityDetected(cityName)
+                        } catch (e: Exception) {
+                            onCityDetected("Chandigarh")
+                        }
+                    }
+                    override fun onStatusChanged(provider: String?, status: Int, extras: Bundle?) {}
+                    override fun onProviderEnabled(provider: String) {}
+                    override fun onProviderDisabled(provider: String) {}
+                }, Looper.getMainLooper())
+            }
+        }
+    } catch (e: Exception) {
+        onCityDetected("Chandigarh")
     }
 }
 
