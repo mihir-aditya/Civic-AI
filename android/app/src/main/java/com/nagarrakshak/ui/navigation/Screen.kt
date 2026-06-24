@@ -1,6 +1,8 @@
 package com.nagarrakshak.ui.navigation
 
 sealed class Screen(val route: String, val title: String) {
+    object Splash : Screen("splash", "Splash")
+    object Auth : Screen("auth", "Auth")
     object Home : Screen("home", "Home")
     object Map : Screen("map", "Safety Map")
     object Report : Screen("report", "Report Hazard")

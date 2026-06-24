@@ -11,11 +11,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.nagarrakshak.ui.theme.PrimaryColor
 import com.nagarrakshak.ui.theme.SafeColor
 
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import com.nagarrakshak.data.AuthManager
+
 @Composable
-fun ProfileScreen(onNavigateToDetail: (String) -> Unit) {
+fun ProfileScreen(
+    onNavigateToDetail: (String) -> Unit,
+    onLogout: () -> Unit
+) {
+    val context = LocalContext.current
+    val authManager = remember { AuthManager(context) }
+    
+    val name = authManager.userName ?: "Ravi Kumar"
+    val email = authManager.userEmail ?: "ravi.kumar@nagarrakshak.org"
+    val avatar = authManager.userPhotoUrl ?: "👤"
+    val loginTypeDesc = when(authManager.loginType) {
+        "google" -> "Signed in with Google"
+        "email" -> "Signed in with Email"
+        "guest" -> "Guest Mode"
+        else -> "Registered Citizen"
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -30,7 +51,7 @@ fun ProfileScreen(onNavigateToDetail: (String) -> Unit) {
                 fontWeight = FontWeight.Bold
             )
         }
-
+ 
         // Profile Card
         item {
             Card(
@@ -48,11 +69,13 @@ fun ProfileScreen(onNavigateToDetail: (String) -> Unit) {
                             .background(PrimaryColor.copy(alpha = 0.1f), shape = RoundedCornerShape(40.dp)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("👤", style = MaterialTheme.typography.titleLarge)
+                        Text(avatar, style = MaterialTheme.typography.titleLarge, fontSize = 36.sp)
                     }
                     Spacer(modifier = Modifier.height(12.dp))
-                    Text(text = "Ravi Kumar", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                    Text(text = "Civic Champion • Level 4", style = MaterialTheme.typography.bodyMedium, color = PrimaryColor)
+                    Text(text = name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(text = email, style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = loginTypeDesc, style = MaterialTheme.typography.bodyMedium, color = PrimaryColor, fontWeight = FontWeight.SemiBold)
                 }
             }
         }
@@ -89,6 +112,22 @@ fun ProfileScreen(onNavigateToDetail: (String) -> Unit) {
                 points = "+50 pts",
                 onClick = { onNavigateToDetail("1") }
             )
+        }
+
+        item {
+            Button(
+                onClick = {
+                    authManager.logout()
+                    onLogout()
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                shape = RoundedCornerShape(14.dp)
+            ) {
+                Text("Sign Out", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold, color = Color.White)
+            }
         }
     }
 }

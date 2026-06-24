@@ -51,64 +51,70 @@ fun AppMainScreen() {
         NavigationItem(Screen.Profile, Icons.Default.Person)
     )
 
+    val shouldShowBottomBar = currentRoute != Screen.Splash.route && currentRoute != Screen.Auth.route
+
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = Color.White
-            ) {
-                navigationItems.forEach { item ->
-                    val isSelected = currentRoute == item.screen.route
-                    NavigationBarItem(
-                        selected = isSelected,
-                        onClick = {
-                            if (currentRoute != item.screen.route) {
-                                navController.navigate(item.screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
+            if (shouldShowBottomBar) {
+                NavigationBar(
+                    containerColor = Color.White
+                ) {
+                    navigationItems.forEach { item ->
+                        val isSelected = currentRoute == item.screen.route
+                        NavigationBarItem(
+                            selected = isSelected,
+                            onClick = {
+                                if (currentRoute != item.screen.route) {
+                                    navController.navigate(item.screen.route) {
+                                        popUpTo(navController.graph.findStartDestination().id) {
+                                            saveState = true
+                                        }
+                                        launchSingleTop = true
+                                        restoreState = item.screen.route != Screen.Home.route
                                     }
-                                    launchSingleTop = true
-                                    restoreState = item.screen.route != Screen.Home.route
                                 }
-                            }
-                        },
-                        icon = {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = item.screen.title
+                            },
+                            icon = {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = item.screen.title
+                                )
+                            },
+                            label = {
+                                Text(text = item.screen.title)
+                            },
+                            colors = NavigationBarItemDefaults.colors(
+                                selectedIconColor = PrimaryColor,
+                                selectedTextColor = PrimaryColor,
+                                unselectedIconColor = Color.Gray,
+                                unselectedTextColor = Color.Gray,
+                                indicatorColor = PrimaryColor.copy(alpha = 0.1f)
                             )
-                        },
-                        label = {
-                            Text(text = item.screen.title)
-                        },
-                        colors = NavigationBarItemDefaults.colors(
-                            selectedIconColor = PrimaryColor,
-                            selectedTextColor = PrimaryColor,
-                            unselectedIconColor = Color.Gray,
-                            unselectedTextColor = Color.Gray,
-                            indicatorColor = PrimaryColor.copy(alpha = 0.1f)
                         )
-                    )
+                    }
                 }
             }
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    navController.navigate(Screen.Report.route) {
-                        popUpTo(navController.graph.findStartDestination().id) {
-                            saveState = true
+            if (shouldShowBottomBar) {
+                FloatingActionButton(
+                    onClick = {
+                        navController.navigate(Screen.Report.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                        launchSingleTop = true
-                        restoreState = true
-                    }
-                },
-                containerColor = PrimaryColor,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Report Hazard"
-                )
+                    },
+                    containerColor = PrimaryColor,
+                    contentColor = Color.White
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Add,
+                        contentDescription = "Report Hazard"
+                    )
+                }
             }
         },
         floatingActionButtonPosition = FabPosition.Center

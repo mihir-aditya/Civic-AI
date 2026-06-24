@@ -11,12 +11,35 @@ import com.nagarrakshak.ui.screens.*
 @Composable
 fun NagarRakshakNavGraph(
     navController: NavHostController,
-    startDestination: String = Screen.Home.route
+    startDestination: String = Screen.Splash.route
 ) {
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+        composable(Screen.Splash.route) {
+            SplashScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToAuth = {
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                }
+            )
+        }
+        composable(Screen.Auth.route) {
+            AuthScreen(
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Auth.route) { inclusive = true }
+                    }
+                }
+            )
+        }
         composable(Screen.Home.route) {
             HomeScreen(
                 onNavigateToReport = { navController.navigate(Screen.Report.route) },
@@ -44,7 +67,12 @@ fun NagarRakshakNavGraph(
         }
         composable(Screen.Profile.route) {
             ProfileScreen(
-                onNavigateToDetail = { hazardId -> navController.navigate(Screen.HazardDetail.createRoute(hazardId)) }
+                onNavigateToDetail = { hazardId -> navController.navigate(Screen.HazardDetail.createRoute(hazardId)) },
+                onLogout = {
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                }
             )
         }
         composable(
