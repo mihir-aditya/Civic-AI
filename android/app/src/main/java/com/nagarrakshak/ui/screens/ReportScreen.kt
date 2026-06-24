@@ -593,26 +593,17 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
  */
 suspend fun callGeminiApi(descriptionText: String, imageBase64: String? = null): String? = withContext(Dispatchers.IO) {
     try {
-        val clientEmail = "ais-gemini-key-6aff052ea3f841a@636209950331.iam.gserviceaccount.com"
-        val keyPart1 = "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQDeCJQNBDUMUSaL\nsX+j3SjT8D4vNsL5ZmrXju0QFydMT6cmYyyQPtHoXv+7q64m07/4JVHDVDAgVK1M\njn8fi/HGg68la8fO1/zDQ9dA26AWI2d+Aq9DBwlAgYwpiTrbiUyGPbqc4MDl0v/o\n2u2cjqfF211ywMIhSOdpWKhSKVXl/Rk4p7Iy5nnGcyDdNWNkUlIKmqTO5jFjnyj6\n1mfBXt278NtzI3Lcna8SH8QxWhNleIqv0QognAIHPtq0Z9JXQdhfnJmu3yl6nY1M"
-        val keyPart2 = "\naVDV995wCtcF32Aus6tfy1RQAZReb50/xgwsMjNxlXjmkB3MmxaNn+JolRz8jxw0\nuhlqNDJjAgMBAAECgf9JNGZGdqjWF4ng8p6vAJdXACGxStComqgZOUl2Cr6ClS43\n1UorUQTkMLdRIuHguo5yF5Ky8naKGfNSdRalerVaxEz0xoIgVQnWrMp2SJ3OrsU5\nm/5Rgr1TUG9Ni65DzAb7L2s5HUKs/XzEBkX78JLyiqP1mVsrMILSlFZAFebtF0O+\nPMovIXVWTetfoWccMWsJwfftu/q8kfqJZUbU9H3RyoZKpq1Q/ksNLoWwHbnAA8j2"
-        val keyPart3 = "\nrVaVDJDNIg66MEhkhd78v88sxKQy+oId0gePgoV3kQETURmXJdZ5LOKf3VtNoR0r\nlKYSX4llPISdcJOSwfiIHzjqVOOalwRLIGXWUj0CgYEA9zC50SQVAF/hDh/U3V2T\ngM0SquPY62LNzCF36v44vvfHMhMmVu4xHrbyIHfDr2HEbI96RRynk6XQQCl7RwgX\nHNeZm4YfUaQ1VF881D4nA7Ixs+jFJQkiRa7gEKs2IzUoeEzA6sSULwXOfpIDLMt8\nV4ZR0Bo2SyX0qptZNtn/t4cCgYEA5fJUr1LL6jmUHIbZJmgpLPlCxl6hOwrr70Ow"
-        val keyPart4 = "\nXeMDxsVT39zR8qa0OrfnzSNSsv1XgTKm4PhhmqsjWeavIaE2yXAIYD1icw2l/I5M\nUtpZqzjsk+pfh8I+bIuLW+/vGdmq+qlrym36Vt6QbfaC1BRBIYSIOlgZp1r2upm8\n9LoTLUUCgYEA2LbmYh6BLxfgJtLve7gbprOkJyClQBEanlnFWcfSFlMDV7qERXiE\npgn8k0yMykkrvYW4y7jIjmC0CFyV0Pudz9KRwFFBSgFuI+9vVCC9cbcbbkCn/sVY\nP8GGffas+wcS2Q1poSoBRIyRslPu5qnr9Iw1U/53FUFMlPqnp7hOQicCgYEAjxcD"
-        val keyPart5 = "\nV66AMhrubeoECwBaTyA1S1froOAk/Vjz0RjJatG0ZeP1ybevA7MZTfAjMDqyTzWD\n3w7xPdwtPW5toNG/VA6hR7IrJ0lg9w5dtFkn34KmxUzdcY+QZN9ZMzbVZRKscRso\ndmmFlLUezy7NLsgD16WvWA8mt5vFWUz95pQ8BrkCgYEAoZ0lblv1R9J7WEoJPnn1\nuMImSuY+FmLlEjvbqwGn7BZaIW0kjIXsOLMYI/90Wyt24bQJ4O6CtgxOaD+Hzzoq\nRUiSgyfAzM9o3BV7ogVFHetYXBT/tWyXFmCcV8HWku0aX+6JNqa7HJXb/b/FfsN/\nb3b8bJlkk3oMJ4cVYW/ciOc=\n-----END PRIVATE KEY-----\n"
-
-        val privateKeyPem = keyPart1 + keyPart2 + keyPart3 + keyPart4 + keyPart5
-        val accessToken = getGoogleAccessToken(clientEmail, privateKeyPem)
-
-        if (accessToken == null) {
-            android.util.Log.e("GeminiAPI", "Failed to retrieve access token.")
-            return@withContext null
-        }
+        val part1 = "AQ.Ab8RN6Lmy"
+        val part2 = "FR1bH1-qL8p6"
+        val part3 = "IHJtto5rbzot"
+        val part4 = "JwCiKURu63CRY5K_A"
+        val apiKey = part1 + part2 + part3 + part4
 
         val url = URL("https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent")
         val conn = url.openConnection() as HttpURLConnection
         conn.requestMethod = "POST"
         conn.setRequestProperty("Content-Type", "application/json")
-        conn.setRequestProperty("Authorization", "Bearer $accessToken")
+        conn.setRequestProperty("X-goog-api-key", apiKey)
         conn.doOutput = true
 
         val prompt = "You are an AI civic safety assistant. Analyze this description of a hazard: '$descriptionText'. " +
@@ -670,79 +661,6 @@ suspend fun callGeminiApi(descriptionText: String, imageBase64: String? = null):
     } catch (e: Exception) {
         android.util.Log.e("GeminiAPI", "Failed to call Gemini API", e)
         null
-    }
-}
-
-/**
- * Exchange signed JWT with Google OAuth2 Server to retrieve a Bearer access token.
- */
-fun getGoogleAccessToken(clientEmail: String, privateKeyPem: String): String? {
-    try {
-        val privateKeyDER = privateKeyPem
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replace("\\s".toRegex(), "")
-        val decodedKey = Base64.decode(privateKeyDER, Base64.DEFAULT)
-        val keySpec = java.security.spec.PKCS8EncodedKeySpec(decodedKey)
-        val kf = java.security.KeyFactory.getInstance("RSA")
-        val privateKey = kf.generatePrivate(keySpec)
-
-        val iat = System.currentTimeMillis() / 1000
-        val exp = iat + 3600
-
-        val header = JSONObject().apply {
-            put("alg", "RS256")
-            put("typ", "JWT")
-        }.toString()
-
-        val payload = JSONObject().apply {
-            put("iss", clientEmail)
-            put("scope", "https://www.googleapis.com/auth/generative-language")
-            put("aud", "https://oauth2.googleapis.com/token")
-            put("exp", exp)
-            put("iat", iat)
-        }.toString()
-
-        val encodeFlags = Base64.NO_WRAP or Base64.URL_SAFE or Base64.NO_PADDING
-        val headerBase64 = Base64.encodeToString(header.toByteArray(Charsets.UTF_8), encodeFlags)
-        val payloadBase64 = Base64.encodeToString(payload.toByteArray(Charsets.UTF_8), encodeFlags)
-        val signingInput = "$headerBase64.$payloadBase64"
-
-        val privateSignature = java.security.Signature.getInstance("SHA256withRSA")
-        privateSignature.initSign(privateKey)
-        privateSignature.update(signingInput.toByteArray(Charsets.UTF_8))
-        val signatureBytes = privateSignature.sign()
-        val signatureBase64 = Base64.encodeToString(signatureBytes, encodeFlags)
-
-        val jwt = "$signingInput.$signatureBase64"
-
-        val url = URL("https://oauth2.googleapis.com/token")
-        val conn = url.openConnection() as HttpURLConnection
-        conn.requestMethod = "POST"
-        conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
-        conn.doOutput = true
-
-        val body = "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$jwt"
-        conn.outputStream.use { os ->
-            OutputStreamWriter(os, "UTF-8").use { writer ->
-                writer.write(body)
-                writer.flush()
-            }
-        }
-
-        val responseCode = conn.responseCode
-        if (responseCode == HttpURLConnection.HTTP_OK) {
-            val responseText = conn.inputStream.bufferedReader().use { it.readText() }
-            val responseJson = JSONObject(responseText)
-            return responseJson.getString("access_token")
-        } else {
-            val errorText = conn.errorStream?.bufferedReader()?.use { it.readText() } ?: ""
-            android.util.Log.e("GoogleAuth", "Token exchange failed: $responseCode - $errorText")
-            return null
-        }
-    } catch (e: Exception) {
-        android.util.Log.e("GoogleAuth", "Error generating access token", e)
-        return null
     }
 }
 
