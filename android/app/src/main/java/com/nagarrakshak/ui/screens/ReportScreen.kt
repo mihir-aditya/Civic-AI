@@ -86,7 +86,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
             val byteArrayOutputStream = ByteArrayOutputStream()
             bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
             val byteArray = byteArrayOutputStream.toByteArray()
-            stagedImageBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+            stagedImageBase64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
             if (description.isBlank()) {
                 description = "Analyzed hazard from captured camera photo."
             }
@@ -107,7 +107,7 @@ fun ReportScreen(onReportSubmitted: () -> Unit) {
                     val byteArrayOutputStream = ByteArrayOutputStream()
                     bitmap.compress(Bitmap.CompressFormat.JPEG, 90, byteArrayOutputStream)
                     val byteArray = byteArrayOutputStream.toByteArray()
-                    stagedImageBase64 = Base64.encodeToString(byteArray, Base64.DEFAULT)
+                    stagedImageBase64 = Base64.encodeToString(byteArray, Base64.NO_WRAP)
                     if (description.isBlank()) {
                         description = "Analyzed hazard from uploaded gallery photo."
                     }
