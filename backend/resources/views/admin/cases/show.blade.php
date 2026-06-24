@@ -334,6 +334,33 @@
     @endphp
 
     @if($gmapKey)
+        // Global error handler for Google Maps Auth Failures (Invalid API Key)
+        window.gm_authFailure = function() {
+            console.error("Google Maps API authentication failed (Invalid Key). Falling back to OpenStreetMap.");
+            
+            // Clean up the Google Map container
+            var mapContainer = document.getElementById('detailMap');
+            mapContainer.innerHTML = '';
+            mapContainer.removeAttribute('style');
+            mapContainer.className = 'rounded-4 border'; // Restore original classes
+            mapContainer.style.minHeight = '400px';
+
+            // Fallback to Leaflet
+            var map = L.map('detailMap').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            L.circleMarker([lat, lng], {
+                radius: 8,
+                fillColor: markerColor,
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map).bindPopup('<strong>{{ $hazard->category }}</strong>').openPopup();
+        };
+
         // Dynamically load Google Maps script
         var script = document.createElement('script');
         script.src = "https://maps.googleapis.com/maps/api/js?key={{ $gmapKey }}&callback=initMap";
