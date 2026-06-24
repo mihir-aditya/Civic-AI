@@ -322,12 +322,6 @@
     var lat = {{ $hazard->latitude }};
     var lng = {{ $hazard->longitude }};
     
-    var map = L.map('detailMap').setView([lat, lng], 15);
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap'
-    }).addTo(map);
-
     var markerColor = '#10B981'; // Green
     if ("{{ $hazard->severity }}" === 'High Risk' || "{{ $hazard->severity }}" === 'Critical') {
         markerColor = '#EF4444'; // Red
@@ -335,13 +329,94 @@
         markerColor = '#F59E0B'; // Orange
     }
 
-    L.circleMarker([lat, lng], {
-        radius: 8,
-        fillColor: markerColor,
-        color: '#ffffff',
-        weight: 2,
-        opacity: 1,
-        fillOpacity: 0.9
-    }).addTo(map).bindPopup('<strong>{{ $hazard->category }}</strong>').openPopup();
+    @php
+        $gmapKey = \App\Services\SettingsService::get('google_maps_api_key');
+    @endphp
+
+    @if($gmapKey)
+        // Global error handler for Google Maps Auth Failures (Invalid API Key)
+        window.gm_authFailure = function() {
+            console.error("Google Maps API authentication failed (Invalid Key). Falling back to OpenStreetMap.");
+            
+            // Clean up the Google Map container
+            var mapContainer = document.getElementById('detailMap');
+            mapContainer.innerHTML = '';
+            mapContainer.removeAttribute('style');
+            mapContainer.className = 'rounded-4 border'; // Restore original classes
+            mapContainer.style.minHeight = '400px';
+
+            // Fallback to Leaflet
+            var map = L.map('detailMap').setView([lat, lng], 15);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; OpenStreetMap'
+            }).addTo(map);
+
+            L.circleMarker([lat, lng], {
+                radius: 8,
+                fillColor: markerColor,
+                color: '#ffffff',
+                weight: 2,
+                opacity: 1,
+                fillOpacity: 0.9
+            }).addTo(map).bindPopup('<strong>{{ $hazard->category }}</strong>').openPopup();
+        };
+
+        // Dynamically load Google Maps script
+        var script = document.createElement('script');
+        script.src = "https://maps.googleapis.com/maps/api/js?key={{ $gmapKey }}&callback=initMap";
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+
+        window.initMap = function() {
+            var map = new google.maps.Map(document.getElementById('detailMap'), {
+                center: {lat: lat, lng: lng},
+                zoom: 16,
+                mapTypeControl: false,
+                streetViewControl: false
+            });
+
+            // Draw a circle marker similar to Leaflet's circleMarker
+            var marker = new google.maps.Circle({
+                strokeColor: '#FFFFFF',
+                strokeOpacity: 1.0,
+                strokeWeight: 2,
+                fillColor: markerColor,
+                fillOpacity: 0.9,
+                map: map,
+                center: {lat: lat, lng: lng},
+                radius: 100 // 100 meters
+            });
+
+            var infoWindow = new google.maps.InfoWindow({
+                content: '<strong>{{ $hazard->category }}</strong>'
+            });
+
+            marker.addListener('click', function() {
+                infoWindow.setPosition({lat: lat, lng: lng});
+                infoWindow.open(map);
+            });
+            
+            // Open it by default
+            infoWindow.setPosition({lat: lat, lng: lng});
+            infoWindow.open(map);
+        };
+    @else
+        // Fallback to Leaflet if API Key is not set
+        var map = L.map('detailMap').setView([lat, lng], 15);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap'
+        }).addTo(map);
+
+        L.circleMarker([lat, lng], {
+            radius: 8,
+            fillColor: markerColor,
+            color: '#ffffff',
+            weight: 2,
+            opacity: 1,
+            fillOpacity: 0.9
+        }).addTo(map).bindPopup('<strong>{{ $hazard->category }}</strong>').openPopup();
+    @endif
 </script>
 @endsection

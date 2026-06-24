@@ -56,12 +56,13 @@ class SettingsController extends Controller
         SettingsService::set('app_name', $request->app_name);
         SettingsService::set('contact_email', $request->contact_email);
         SettingsService::set('logo_path', $request->logo_path);
+        SettingsService::set('google_maps_api_key', $request->google_maps_api_key);
 
         ActivityLog::create([
             'user_id' => auth()->id(),
             'type' => 'Admin',
             'action' => 'Settings Updated',
-            'description' => 'Updated core system brand configurations.',
+            'description' => 'Updated core system brand configurations and Maps API.',
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent()
         ]);

@@ -55,9 +55,15 @@
                         <input type="email" name="contact_email" class="form-control form-control-sm" value="{{ $settings['contact_email'] ?? 'support@nagarrakshak.org' }}" required>
                     </div>
 
-                    <div class="mb-4">
+                    <div class="mb-3">
                         <label class="form-label text-muted small">Logo Path / URL</label>
                         <input type="text" name="logo_path" class="form-control form-control-sm" value="{{ $settings['logo_path'] ?? '' }}" placeholder="Default logo loaded if empty">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-muted small"><i class="fa-solid fa-map-location-dot text-green"></i> Google Maps API Key</label>
+                        <input type="text" name="google_maps_api_key" class="form-control form-control-sm" value="{{ $settings['google_maps_api_key'] ?? '' }}" placeholder="AIzaSy...">
+                        <div class="form-text" style="font-size: 0.7rem;">Used application-wide for map rendering and geocoding.</div>
                     </div>
 
                     <button type="submit" class="btn btn-sm btn-success w-100 rounded-3 py-2 fw-semibold">Save Customizations</button>
