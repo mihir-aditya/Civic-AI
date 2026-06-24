@@ -3,52 +3,47 @@
 @section('title', 'NagarRakshak Map Center')
 
 @section('content')
-<div class="container-fluid position-relative p-0 m-0" style="height: calc(100vh - 80px); overflow: hidden;">
+<div class="container-fluid d-flex flex-column p-0 m-0" style="height: calc(100vh - 65px);">
     
-    <!-- Floating Filter Panel -->
-    <div class="card card-custom position-absolute m-4 shadow-lg border-0" style="z-index: 1000; width: 320px; top: 0; left: 0; background-color: rgba(255,255,255,0.95); backdrop-filter: blur(10px);">
-        <div class="card-header bg-transparent border-bottom-0 pt-4 pb-0">
-            <h5 class="fw-bold m-0"><i class="fa-solid fa-layer-group text-green"></i> Live Hazard Filters</h5>
-            <p class="text-muted small mt-1 mb-0">Toggle markers to narrow down the map.</p>
+    <!-- Top Horizontal Filter Panel -->
+    <div class="bg-white border-bottom p-3 d-flex align-items-center flex-wrap gap-3 shadow-sm" style="z-index: 1000;">
+        <div class="d-flex align-items-center gap-2 me-2">
+            <i class="fa-solid fa-layer-group text-green"></i>
+            <h6 class="fw-bold m-0">Live Filters</h6>
         </div>
-        <div class="card-body">
-            <div class="mb-3">
-                <label class="form-label text-muted small fw-bold">Severity</label>
-                <select class="form-select form-select-sm shadow-sm" id="filterSeverity">
-                    <option value="All">All Severities</option>
-                    <option value="Critical">Critical</option>
-                    <option value="High Risk">High Risk</option>
-                    <option value="Medium Risk">Medium Risk</option>
-                    <option value="Low Risk">Low Risk</option>
-                </select>
-            </div>
-            <div class="mb-3">
-                <label class="form-label text-muted small fw-bold">Status</label>
-                <select class="form-select form-select-sm shadow-sm" id="filterStatus">
-                    <option value="All">All Statuses</option>
-                    <option value="Pending">Pending</option>
-                    <option value="Verified">Verified</option>
-                    <option value="Resolved">Resolved</option>
-                </select>
-            </div>
-            <div class="mb-4">
-                <label class="form-label text-muted small fw-bold">Category</label>
-                <select class="form-select form-select-sm shadow-sm" id="filterCategory">
-                    <option value="All">All Categories</option>
-                    @foreach($categories as $category)
-                        <option value="{{ $category->name }}">{{ $category->name }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="d-flex justify-content-between align-items-center mt-4">
-                <span class="text-muted small fw-semibold" id="markerCount">0 hazards found</span>
-                <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="resetFilters">Reset</button>
-            </div>
+        
+        <div class="d-flex flex-wrap gap-2 flex-grow-1">
+            <select class="form-select form-select-sm" id="filterSeverity" style="max-width: 160px;">
+                <option value="All">All Severities</option>
+                <option value="Critical">Critical</option>
+                <option value="High Risk">High Risk</option>
+                <option value="Medium Risk">Medium Risk</option>
+                <option value="Low Risk">Low Risk</option>
+            </select>
+
+            <select class="form-select form-select-sm" id="filterStatus" style="max-width: 160px;">
+                <option value="All">All Statuses</option>
+                <option value="Pending">Pending</option>
+                <option value="Verified">Verified</option>
+                <option value="Resolved">Resolved</option>
+            </select>
+
+            <select class="form-select form-select-sm" id="filterCategory" style="max-width: 200px;">
+                <option value="All">All Categories</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->name }}">{{ $category->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+            <span class="badge bg-light text-dark border px-3 py-2 rounded-pill" id="markerCount" style="font-size: 0.85rem;">0 hazards</span>
+            <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" id="resetFilters"><i class="fa-solid fa-rotate-right me-1"></i> Reset</button>
         </div>
     </div>
 
     <!-- The Map Container -->
-    <div id="fullScreenMap" style="width: 100%; height: 100%; z-index: 10;"></div>
+    <div id="fullScreenMap" class="flex-grow-1" style="width: 100%; z-index: 10;"></div>
 </div>
 @endsection
 
