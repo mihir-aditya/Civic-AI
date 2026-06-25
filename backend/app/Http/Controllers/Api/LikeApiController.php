@@ -13,11 +13,16 @@ class LikeApiController extends Controller
      */
     public function store($hazardId)
     {
-        // TODO: Implement logic to upvote the hazard
+        $hazard = \App\Models\Hazard::findOrFail($hazardId);
+        
+        // In a real app, ensure a user can only upvote once using a pivot table.
+        // For now, we increment the count directly.
+        $hazard->increment('verification_count');
+
         return response()->json([
             'success' => true,
             'message' => 'Hazard upvoted / verified successfully',
-            'verification_count' => 0
+            'verification_count' => $hazard->verification_count
         ]);
     }
 
@@ -27,11 +32,16 @@ class LikeApiController extends Controller
      */
     public function destroy($hazardId)
     {
-        // TODO: Implement logic to remove upvote from the hazard
+        $hazard = \App\Models\Hazard::findOrFail($hazardId);
+        
+        if ($hazard->verification_count > 0) {
+            $hazard->decrement('verification_count');
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Upvote removed successfully',
-            'verification_count' => 0
+            'verification_count' => $hazard->verification_count
         ]);
     }
 }

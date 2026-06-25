@@ -40,6 +40,49 @@ class AiApiController extends Controller
                 'raw_payload' => $analysisResult,
             ]);
 
+            // Duplicate Detection Logic (20 meters)
+            $similarHazards = [];
+            if ($latitude && $longitude && isset($analysisResult['predicted_category'])) {
+                $category = $analysisResult['predicted_category'];
+                
+                // Fetch active hazards of the same category
+                $potentialHazards = \App\Models\Hazard::where('is_archived', false)
+                    ->where('category', $category)
+                    ->get();
+                
+                foreach ($potentialHazards as $hazard) {
+                    // Haversine formula in PHP
+                    $earthRadius = 6371000; // Radius of earth in meters
+                    $latFrom = deg2rad((float)$latitude);
+                    $lonFrom = deg2rad((float)$longitude);
+                    $latTo = deg2rad((float)$hazard->latitude);
+                    $lonTo = deg2rad((float)$hazard->longitude);
+
+                    $latDelta = $latTo - $latFrom;
+                    $lonDelta = $lonTo - $lonFrom;
+
+                    $angle = 2 * asin(sqrt(pow(sin($latDelta / 2), 2) +
+                        cos($latFrom) * cos($latTo) * pow(sin($lonDelta / 2), 2)));
+                    
+                    $distance = $angle * $earthRadius;
+
+                    if ($distance <= 20) {
+                        $similarHazards[] = [
+                            'id' => $hazard->id,
+                            'title' => $hazard->location_name,
+                            'severity' => $hazard->severity,
+                            'distance_meters' => round($distance, 1),
+                            'verification_count' => $hazard->verification_count
+                        ];
+                    }
+                }
+
+                // Sort by distance
+                usort($similarHazards, function($a, $b) {
+                    return $a['distance_meters'] <=> $b['distance_meters'];
+                });
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -48,7 +91,8 @@ class AiApiController extends Controller
                     'predicted_severity' => $analysisResult['predicted_severity'] ?? null,
                     'confidence_score' => $analysisResult['confidence_score'] ?? null,
                     'generated_summary' => $analysisResult['generated_summary'] ?? null,
-                    'petition_draft' => $analysisResult['petition_draft'] ?? null
+                    'petition_draft' => $analysisResult['petition_draft'] ?? null,
+                    'similar_hazards' => $similarHazards
                 ]
             ]);
 

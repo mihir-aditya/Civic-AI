@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AiLog;
+use App\Models\AiSetting;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -14,9 +15,11 @@ class GeminiService
     public function analyzeHazardImage(string $imageBase64, string $mimeType, ?float $latitude = null, ?float $longitude = null): array
     {
         $startTime = microtime(true);
-        $apiKey = SettingsService::get('gemini_api_key');
+        $aiSetting = AiSetting::first();
+        $apiKey = $aiSetting ? $aiSetting->api_key : env('GEMINI_API_KEY');
         
-        $prompt = "Analyze this municipal hazard photo. Classify the hazard category into one of: Pothole, Open Drain, Open Manhole, Waterlogging, Broken Streetlight, Garbage. Suggest severity (Low, Medium, High, Critical). Provide a 2-sentence description. Generate a formal petition letter addressed to the Municipal Commissioner, Kota, starting with 'To,\nThe Municipal Commissioner...' demanding resolution.";
+        $defaultPrompt = "Analyze this municipal hazard photo. Classify the hazard category into one of: Pothole, Open Drain, Open Manhole, Waterlogging, Broken Streetlight, Garbage. Suggest severity (Low, Medium, High, Critical). Provide a 2-sentence description. Generate a formal petition letter addressed to the Municipal Commissioner, Kota, starting with 'To,\nThe Municipal Commissioner...' demanding resolution.";
+        $prompt = ($aiSetting && $aiSetting->classification_prompt) ? $aiSetting->classification_prompt : $defaultPrompt;
         
         // Add location context if provided
         if ($latitude && $longitude) {
@@ -92,9 +95,10 @@ class GeminiService
     public function analyze(string $category, string $description, ?string $imagePath = null): array
     {
         $startTime = microtime(true);
-        $apiKey = SettingsService::get('gemini_api_key');
-        $prompt = SettingsService::get('classification_prompt', 'Classify this civic hazard.');
-        $confidenceThreshold = (float) SettingsService::get('confidence_threshold', 0.7);
+        $aiSetting = AiSetting::first();
+        $apiKey = $aiSetting ? $aiSetting->api_key : env('GEMINI_API_KEY');
+        $prompt = ($aiSetting && $aiSetting->classification_prompt) ? $aiSetting->classification_prompt : 'Classify this civic hazard.';
+        $confidenceThreshold = $aiSetting ? (float) $aiSetting->confidence_threshold : 0.7;
 
         // Fallback result in case API key is missing or request fails
         $fallback = [
