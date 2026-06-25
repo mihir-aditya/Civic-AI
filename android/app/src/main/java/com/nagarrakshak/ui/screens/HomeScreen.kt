@@ -414,13 +414,6 @@ fun HomeScreen(
                             Severity.MEDIUM -> Color(0xFFFEF3C7)
                             Severity.LOW -> Color(0xFFD1FAE5)
                         }
-                        val illustration: @Composable () -> Unit = when {
-                            alert.category.contains("drain", ignoreCase = true) -> { { OpenDrainIllustration() } }
-                            alert.category.contains("garbage", ignoreCase = true) || alert.category.contains("dump", ignoreCase = true) -> { { GarbageDumpIllustration() } }
-                            alert.category.contains("water", ignoreCase = true) -> { { WaterLoggingIllustration() } }
-                            alert.category.contains("light", ignoreCase = true) -> { { BrokenStreetLightIllustration() } }
-                            else -> { { PotholeIllustration() } }
-                        }
                         NearbyAlertVerticalCard(
                             title = alert.title,
                             location = alert.locationName,
@@ -434,7 +427,7 @@ fun HomeScreen(
                             severityColor = severityColor,
                             severityBg = severityBg,
                             timeAgo = alert.reportTime,
-                            imageIllustration = illustration,
+                            imageUrl = alert.imageUrl,
                             onClick = { onNavigateToDetail(alert.id) }
                         )
                     }
@@ -595,7 +588,7 @@ fun NearbyAlertVerticalCard(
     severityColor: Color,
     severityBg: Color,
     timeAgo: String,
-    imageIllustration: @Composable () -> Unit,
+    imageUrl: String?,
     onClick: () -> Unit
 ) {
     Card(
@@ -620,7 +613,13 @@ fun NearbyAlertVerticalCard(
                     .background(Color(0xFFF1F5F9)),
                 contentAlignment = Alignment.Center
             ) {
-                imageIllustration()
+                val model = if (!imageUrl.isNullOrBlank()) imageUrl else com.nagarrakshak.R.drawable.placeholder_hazard
+                coil.compose.AsyncImage(
+                    model = model,
+                    contentDescription = "Hazard Thumbnail",
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = androidx.compose.ui.layout.ContentScale.Crop
+                )
             }
             
             Spacer(modifier = Modifier.width(12.dp))
