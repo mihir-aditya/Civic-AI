@@ -67,7 +67,8 @@ import com.google.maps.android.compose.rememberCameraPositionState
 fun HomeScreen(
     onNavigateToReport: () -> Unit,
     onNavigateToDetail: (String) -> Unit,
-    onNavigateToMap: () -> Unit
+    onNavigateToMap: () -> Unit,
+    onNavigateToAlerts: () -> Unit
 ) {
     val context = LocalContext.current
     var currentCityName by remember { mutableStateOf("Chandigarh") }
@@ -376,7 +377,7 @@ fun HomeScreen(
                 )
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.clickable { onNavigateToMap() }
+                    modifier = Modifier.clickable { onNavigateToAlerts() }
                 ) {
                     Text(
                         text = "View All",
