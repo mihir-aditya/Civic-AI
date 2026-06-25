@@ -62,7 +62,9 @@ fun AppMainScreen() {
         NavigationItem(Screen.Profile, Icons.Default.Person)
     )
 
-    val shouldShowBottomBar = currentRoute != Screen.Splash.route && currentRoute != Screen.Auth.route
+    val shouldShowBottomBar = currentRoute != Screen.Splash.route && 
+                              currentRoute != Screen.Auth.route && 
+                              !com.nagarrakshak.ui.screens.NavigationState.isRideModeActive
 
     Scaffold(
         bottomBar = {
@@ -89,7 +91,8 @@ fun AppMainScreen() {
                             verticalAlignment = Alignment.CenterVertically
                         ) {
                             navigationItems.forEach { item ->
-                                val isSelected = currentRoute == item.screen.route
+                                val isSelected = currentRoute == item.screen.route || 
+                                        (item.screen == Screen.Profile && currentRoute == Screen.Settings.route)
                                 Column(
                                     modifier = Modifier
                                         .clickable {

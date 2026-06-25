@@ -21,5 +21,6 @@ data class HazardReport(
     val reportTime: String,
     val description: String,
     val aiAnalysisSummary: String? = null,
-    val imageUrl: String? = null
+    val imageUrl: String? = null,
+    val rawSeverity: String = "Medium Risk"
 )

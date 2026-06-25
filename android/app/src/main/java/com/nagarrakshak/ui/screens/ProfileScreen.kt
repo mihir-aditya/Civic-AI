@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalContext
 @Composable
 fun ProfileScreen(
     onNavigateToDetail: (String) -> Unit,
+    onNavigateToSettings: () -> Unit,
     onLogout: () -> Unit,
     onBackClicked: () -> Unit
 ) {
@@ -160,7 +161,7 @@ fun ProfileScreen(
                 Box(
                     modifier = Modifier
                         .size(36.dp)
-                        .clickable { showLogoutDialog = true },
+                        .clickable { onNavigateToSettings() },
                     contentAlignment = Alignment.Center
                 ) {
                     SettingsGearIcon(color = Color(0xFF0F172A))
@@ -339,7 +340,7 @@ fun ProfileScreen(
                         description = "Manage your account and preferences",
                         iconContent = { GearIcon(color = Color(0xFFC2410C)) },
                         iconBgColor = Color(0xFFFFEDD5),
-                        onClick = { showLogoutDialog = true }
+                        onClick = { onNavigateToSettings() }
                     )
                 }
             }
