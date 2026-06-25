@@ -32,6 +32,9 @@ import com.nagarrakshak.ui.theme.WarningColor
 import com.nagarrakshak.data.BackendClient
 import com.nagarrakshak.data.models.HazardReport
 import com.nagarrakshak.data.models.Severity
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.alpha
+
 
 import android.Manifest
 import android.content.Context
@@ -71,10 +74,14 @@ fun HomeScreen(
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
     var showScoreDialog by remember { mutableStateOf(false) }
     var alertsList by remember { mutableStateOf<List<HazardReport>>(emptyList()) }
+    var isLoading by remember { mutableStateOf(true) }
 
     LaunchedEffect(Unit) {
+        isLoading = true
         alertsList = BackendClient.fetchNearbyHazards()
+        isLoading = false
     }
+
 
     val locationPermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -388,43 +395,49 @@ fun HomeScreen(
             }
         }
 
-        // 6. Nearby Alerts List (4 Vertical cards matching mockup)
+        // 6. Nearby Alerts List (dynamic with skeleton fallback)
         item {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                alertsList.forEach { alert ->
-                    val severityColor = when (alert.severity) {
-                        Severity.HIGH -> Color(0xFFEF4444)
-                        Severity.MEDIUM -> Color(0xFFD97706)
-                        Severity.LOW -> Color(0xFF10B981)
+                if (isLoading || alertsList.isEmpty()) {
+                    repeat(3) {
+                        SkeletonAlertCard()
                     }
-                    val severityBg = when (alert.severity) {
-                        Severity.HIGH -> Color(0xFFFEE2E2)
-                        Severity.MEDIUM -> Color(0xFFFEF3C7)
-                        Severity.LOW -> Color(0xFFD1FAE5)
+                } else {
+                    alertsList.forEach { alert ->
+                        val severityColor = when (alert.severity) {
+                            Severity.HIGH -> Color(0xFFEF4444)
+                            Severity.MEDIUM -> Color(0xFFD97706)
+                            Severity.LOW -> Color(0xFF10B981)
+                        }
+                        val severityBg = when (alert.severity) {
+                            Severity.HIGH -> Color(0xFFFEE2E2)
+                            Severity.MEDIUM -> Color(0xFFFEF3C7)
+                            Severity.LOW -> Color(0xFFD1FAE5)
+                        }
+                        val illustration: @Composable () -> Unit = when {
+                            alert.category.contains("drain", ignoreCase = true) -> { { OpenDrainIllustration() } }
+                            alert.category.contains("garbage", ignoreCase = true) || alert.category.contains("dump", ignoreCase = true) -> { { GarbageDumpIllustration() } }
+                            alert.category.contains("water", ignoreCase = true) -> { { WaterLoggingIllustration() } }
+                            alert.category.contains("light", ignoreCase = true) -> { { BrokenStreetLightIllustration() } }
+                            else -> { { PotholeIllustration() } }
+                        }
+                        NearbyAlertVerticalCard(
+                            title = alert.title,
+                            location = alert.locationName,
+                            description = alert.description,
+                            distance = "Nearby",
+                            severity = when (alert.severity) {
+                                Severity.HIGH -> "High"
+                                Severity.MEDIUM -> "Medium"
+                                Severity.LOW -> "Low"
+                            },
+                            severityColor = severityColor,
+                            severityBg = severityBg,
+                            timeAgo = alert.reportTime,
+                            imageIllustration = illustration,
+                            onClick = { onNavigateToDetail(alert.id) }
+                        )
                     }
-                    val illustration: @Composable () -> Unit = when {
-                        alert.category.contains("drain", ignoreCase = true) -> { { OpenDrainIllustration() } }
-                        alert.category.contains("garbage", ignoreCase = true) || alert.category.contains("dump", ignoreCase = true) -> { { GarbageDumpIllustration() } }
-                        alert.category.contains("water", ignoreCase = true) -> { { WaterLoggingIllustration() } }
-                        alert.category.contains("light", ignoreCase = true) -> { { BrokenStreetLightIllustration() } }
-                        else -> { { PotholeIllustration() } }
-                    }
-                    NearbyAlertVerticalCard(
-                        title = alert.title,
-                        location = alert.locationName,
-                        description = alert.description,
-                        distance = "Nearby",
-                        severity = when (alert.severity) {
-                            Severity.HIGH -> "High"
-                            Severity.MEDIUM -> "Medium"
-                            Severity.LOW -> "Low"
-                        },
-                        severityColor = severityColor,
-                        severityBg = severityBg,
-                        timeAgo = alert.reportTime,
-                        imageIllustration = illustration,
-                        onClick = { onNavigateToDetail(alert.id) }
-                    )
                 }
             }
         }
@@ -860,5 +873,62 @@ fun PotholeIllustration() {
         drawLine(Color(0xFF1E293B), Offset(size.width * 0.75f, size.height * 0.5f), Offset(size.width * 0.9f, size.height * 0.45f), strokeWidth = stroke)
     }
 }
+
+@Composable
+fun SkeletonAlertCard() {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .alpha(alpha),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(10.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFE2E8F0))
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Box(modifier = Modifier.fillMaxWidth(0.6f).height(16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+                Box(modifier = Modifier.fillMaxWidth(0.4f).height(12.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+                Box(modifier = Modifier.fillMaxWidth(0.9f).height(12.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.height(76.dp)
+            ) {
+                Box(modifier = Modifier.size(width = 45.dp, height = 16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(6.dp)))
+                Box(modifier = Modifier.size(width = 50.dp, height = 16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(6.dp)))
+                Box(modifier = Modifier.size(width = 30.dp, height = 10.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(6.dp)))
+            }
+        }
+    }
+}
+
 
 

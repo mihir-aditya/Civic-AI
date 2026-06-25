@@ -25,6 +25,9 @@ import com.nagarrakshak.data.models.HazardReport
 import com.nagarrakshak.data.models.Severity
 import com.nagarrakshak.data.models.VerificationStatus
 import kotlinx.coroutines.launch
+import androidx.compose.animation.core.*
+import androidx.compose.ui.draw.alpha
+
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -47,11 +50,10 @@ fun DetailScreen(
     }
 
     if (isLoading) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator(color = PrimaryColor)
-        }
+        SkeletonDetailContent()
         return
     }
+
 
     val report = hazardReport
     if (report == null) {
@@ -318,3 +320,56 @@ fun DetailScreen(
     }
 
 }
+
+@Composable
+fun SkeletonDetailContent() {
+    val transition = rememberInfiniteTransition(label = "shimmer")
+    val alpha by transition.animateFloat(
+        initialValue = 0.3f,
+        targetValue = 0.9f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(durationMillis = 800, easing = LinearEasing),
+            repeatMode = RepeatMode.Reverse
+        ),
+        label = "alpha"
+    )
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .alpha(alpha)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(200.dp)
+                .background(Color(0xFFE2E8F0), shape = RoundedCornerShape(16.dp))
+        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Box(modifier = Modifier.size(width = 180.dp, height = 24.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+                Box(modifier = Modifier.size(width = 120.dp, height = 16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+            }
+            Box(modifier = Modifier.size(width = 80.dp, height = 24.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(8.dp)))
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(72.dp)
+                .background(Color(0xFFE2E8F0), shape = RoundedCornerShape(16.dp))
+        )
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Box(modifier = Modifier.size(width = 100.dp, height = 20.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+            Box(modifier = Modifier.fillMaxWidth().height(16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+            Box(modifier = Modifier.fillMaxWidth(0.9f).height(16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+            Box(modifier = Modifier.fillMaxWidth(0.7f).height(16.dp).background(Color(0xFFE2E8F0), shape = RoundedCornerShape(4.dp)))
+        }
+    }
+}
+
