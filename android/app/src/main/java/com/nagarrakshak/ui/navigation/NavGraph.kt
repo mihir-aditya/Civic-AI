@@ -69,6 +69,7 @@ fun NagarRakshakNavGraph(
         composable(Screen.Profile.route) {
             ProfileScreen(
                 onNavigateToDetail = { hazardId -> navController.navigate(Screen.HazardDetail.createRoute(hazardId)) },
+                onNavigateToSettings = { navController.navigate(Screen.Settings.route) },
                 onLogout = {
                     navController.navigate(Screen.Auth.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
@@ -76,6 +77,16 @@ fun NagarRakshakNavGraph(
                 },
                 onBackClicked = {
                     navController.popBackStack()
+                }
+            )
+        }
+        composable(Screen.Settings.route) {
+            SettingsScreen(
+                onBackClicked = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Auth.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
                 }
             )
         }
