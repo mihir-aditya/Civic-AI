@@ -1,0 +1,376 @@
+================================================================================
+NAGARRAKSHAK BACKEND APIS SPECIFICATION REFERENCE
+================================================================================
+Base URL: https://api.nagarrakshak.org/api/v1
+Format: JSON (UTF-8)
+
+--------------------------------------------------------------------------------
+1. AUTHENTICATION MODULE
+--------------------------------------------------------------------------------
+
+Endpoint: POST /auth/register
+Description: Creates a new user account (citizen or volunteer).
+Headers: Content-Type: application/json
+Request JSON:
+{
+  "name": "John Doe",
+  "email": "johndoe@example.com",
+  "password": "SecurePassword123",
+  "phone_number": "+919876543210",
+  "role": "citizen"
+}
+Response (201 Created):
+{
+  "success": true,
+  "message": "User registered successfully",
+  "data": {
+    "user": { "id": 101, "name": "John Doe", "email": "johndoe@example.com", "role": "citizen" },
+    "tokens": { "access_token": "jwt_string", "refresh_token": "refresh_string" }
+  }
+}
+
+---
+
+Endpoint: POST /auth/login
+Description: Authenticates user using email credentials or Google OAuth id token.
+Headers: Content-Type: application/json
+Request JSON (Email):
+{
+  "email": "johndoe@example.com",
+  "password": "SecurePassword123"
+}
+Request JSON (Google):
+{
+  "google_id_token": "google_play_services_token"
+}
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "user": { "id": 101, "name": "John Doe", "email": "johndoe@example.com", "role": "citizen" },
+    "tokens": { "access_token": "jwt_string", "refresh_token": "refresh_string" }
+  }
+}
+
+---
+
+Endpoint: POST /auth/logout
+Description: Invalidate user session and revokes access token.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "message": "Logged out successfully"
+}
+
+---
+
+Endpoint: POST /auth/refresh
+Description: Rotate token by exchanging a valid Refresh Token for a new set of tokens.
+Headers: Content-Type: application/json
+Request JSON:
+{
+  "refresh_token": "current_refresh_token_uuid"
+}
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "access_token": "new_jwt_string",
+    "refresh_token": "new_refresh_token_uuid"
+  }
+}
+
+
+--------------------------------------------------------------------------------
+2. AI ANALYSIS MODULE
+--------------------------------------------------------------------------------
+
+Endpoint: POST /ai/analyze
+Description: Processes raw hazard photo via Gemini to detect issue details.
+Headers: Authorization: Bearer <access_token>
+Content-Type: multipart/form-data
+Request Parameters:
+  - image: Binary file (JPEG/PNG)
+  - latitude: Decimal (e.g. 25.1820)
+  - longitude: Decimal (e.g. 75.8280)
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "ai_analysis_id": 402,
+    "predicted_category": "Pothole",
+    "predicted_severity": "High",
+    "confidence_score": 94.50,
+    "generated_summary": "Pothole in center lane causing safety hazards.",
+    "petition_draft": "To,\nThe Municipal Commissioner..."
+  }
+}
+
+
+--------------------------------------------------------------------------------
+3. HAZARDS CORE MODULE
+--------------------------------------------------------------------------------
+
+Endpoint: POST /hazards
+Description: Creates a new hazard report.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "title": "Open Drain",
+  "description": "Exposed sidewalk drain posing safety risk.",
+  "category_id": 3,
+  "latitude": 25.2100,
+  "longitude": 75.8600,
+  "address": "Mahaveer Nagar, Kota",
+  "ai_analysis_id": 402
+}
+Response (201 Created):
+{
+  "success": true,
+  "data": {
+    "id": 501,
+    "title": "Open Drain",
+    "description": "Exposed sidewalk drain posing safety risk.",
+    "issue_type": { "id": 3, "name": "Open Drain" },
+    "severity": { "id": 4, "name": "High" },
+    "status": "Pending",
+    "location": { "latitude": 25.2100, "longitude": 75.8600, "address": "Mahaveer Nagar, Kota" },
+    "images": [ { "id": 12, "image_path": "https://..." } ],
+    "reported_by": { "id": 101, "name": "John Doe" },
+    "verification_count": 0,
+    "created_at": "2026-06-25T11:00:00Z"
+  }
+}
+
+---
+
+Endpoint: GET /hazards
+Description: Lists hazards. Support filter queries.
+Headers: Authorization: Bearer <access_token>
+Query Parameters:
+  - category_id: integer
+  - status: string (Pending, Verified, Resolved)
+  - severity: string (Low, Medium, High, Critical)
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    { "id": 501, "title": "Open Drain", "status": "Verified", ... }
+  ],
+  "meta": {
+    "current_page": 1,
+    "last_page": 5,
+    "per_page": 20,
+    "total": 92
+  }
+}
+
+---
+
+Endpoint: GET /hazards/{id}
+Description: Get full hazard details.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK): Returns Standard Hazard DTO structure.
+
+---
+
+Endpoint: PUT /hazards/{id}
+Description: Updates hazard text details (Owner/Admin only).
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "title": "Updated Title",
+  "description": "Updated Description text"
+}
+Response (200 OK): Returns updated Hazard DTO.
+
+---
+
+Endpoint: DELETE /hazards/{id}
+Description: Hard-deletes a hazard report (Admin only).
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "message": "Hazard deleted successfully"
+}
+
+
+--------------------------------------------------------------------------------
+4. INTERACTIONS MODULE (COMMENTS, LIKES, BOOKMARKS)
+--------------------------------------------------------------------------------
+
+Endpoint: GET /hazards/{id}/comments
+Description: Retrieve discussion thread comments for a hazard.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    { "id": 1, "user": { "name": "Alice" }, "content": "Caution here", "created_at": "2026-06-25T11:30:00Z" }
+  ]
+}
+
+---
+
+Endpoint: POST /hazards/{id}/comments
+Description: Post a new comment.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "content": "Road is blocked due to waterlogging."
+}
+Response (201 Created):
+{
+  "success": true,
+  "data": { "id": 1502, "content": "Road is blocked due to waterlogging.", "created_at": "..." }
+}
+
+---
+
+Endpoint: POST /hazards/{id}/like
+Description: Upvote / verify a hazard. Increments vote count.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "message": "Hazard upvoted / verified successfully",
+  "verification_count": 15
+}
+
+---
+
+Endpoint: POST /hazards/{id}/bookmark
+Description: Adds hazard report to monitored bookmarks list.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "message": "Hazard added to bookmarks"
+}
+
+
+--------------------------------------------------------------------------------
+5. MAPS & NAVIGATION MODULE
+--------------------------------------------------------------------------------
+
+Endpoint: GET /maps/hazards
+Description: Viewport bounds query mapping simplified hazard markers.
+Headers: Authorization: Bearer <access_token>
+Query Parameters:
+  - north_east_lat, north_east_lng, south_west_lat, south_west_lng
+Response (200 OK):
+{
+  "success": true,
+  "data": [
+    { "id": 501, "latitude": 25.2100, "longitude": 75.8600, "category_id": 3, "severity": "High" }
+  ]
+}
+
+---
+
+Endpoint: POST /maps/safe-route
+Description: Google Routes API bridge with calculated risk score rankings.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "origin": { "latitude": 25.1820, "longitude": 75.8280 },
+  "destination": { "latitude": 25.1660, "longitude": 75.8580 }
+}
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "routes": [
+      {
+        "route_id": 1,
+        "name": "Safest Route",
+        "polyline": "a~_rF`psbO...",
+        "distance_meters": 12400,
+        "duration_seconds": 1680,
+        "risk_score": 0,
+        "hazards_count": 0
+      }
+    ]
+  }
+}
+
+---
+
+Endpoint: POST /ride/start
+Description: Log entry tracking start of navigation session.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "route_id": 1,
+  "polyline": "polyline_string",
+  "origin_lat": 25.1820, "origin_lng": 75.8280,
+  "dest_lat": 25.1660, "dest_lng": 75.8580
+}
+Response (200 OK):
+{
+  "success": true,
+  "session_id": 703
+}
+
+---
+
+Endpoint: POST /ride/share-location
+Description: Ping telemetry coordinates.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "session_id": 703,
+  "latitude": 25.1800,
+  "longitude": 75.8300,
+  "speed_kmh": 32.5
+}
+Response (200 OK):
+{
+  "success": true
+}
+
+
+--------------------------------------------------------------------------------
+6. SYSTEM PROFILE & SETTINGS
+--------------------------------------------------------------------------------
+
+Endpoint: GET /profile/stats
+Description: Fetches logged user contribution statistics.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK):
+{
+  "success": true,
+  "data": {
+    "user_id": 101,
+    "name": "John Doe",
+    "reputation_points": 140,
+    "stats": { "hazards_reported": 12, "hazards_verified": 45, "hazards_resolved": 3 }
+  }
+}
+
+---
+
+Endpoint: GET /settings
+Description: Fetches synchronized app preference configurations.
+Headers: Authorization: Bearer <access_token>
+Response (200 OK): Returns standard Settings JSON structures.
+
+---
+
+Endpoint: PUT /settings
+Description: Synchronize client settings back to user record.
+Headers: Content-Type: application/json, Authorization: Bearer <access_token>
+Request JSON:
+{
+  "language": "en",
+  "theme": "system",
+  "notifications": { "push_enabled": true }
+}
+Response (200 OK):
+{
+  "success": true,
+  "message": "Preferences synchronized successfully"
+}
+================================================================================

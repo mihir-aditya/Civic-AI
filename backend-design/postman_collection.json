@@ -1,0 +1,422 @@
+{
+  "info": {
+    "_postman_id": "8b9db45b-d352-4739-9d51-c03507d3910c",
+    "name": "NagarRakshak APIs",
+    "description": "NagarRakshak civic safety platform API collection.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Doe\",\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"SecurePassword123\",\n  \"phone_number\": \"+919876543210\",\n  \"role\": \"citizen\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"johndoe@example.com\",\n  \"password\": \"SecurePassword123\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/auth/logout",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "AI Services",
+      "item": [
+        {
+          "name": "Analyze Image",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file", "src": "" },
+                { "key": "latitude", "value": "25.18200000", "type": "text" },
+                { "key": "longitude", "value": "75.82800000", "type": "text" }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/ai/analyze",
+              "host": ["{{base_url}}"],
+              "path": ["ai", "analyze"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Hazards Core",
+      "item": [
+        {
+          "name": "List Hazards",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards?category_id=3&status=Verified",
+              "host": ["{{base_url}}"],
+              "path": ["hazards"],
+              "query": [
+                { "key": "category_id", "value": "3" },
+                { "key": "status", "value": "Verified" }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Submit Hazard",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Open Drain\",\n  \"description\": \"Large open drain corner road\",\n  \"category_id\": 3,\n  \"latitude\": 25.21000000,\n  \"longitude\": 75.86000000,\n  \"address\": \"Kota\",\n  \"ai_analysis_id\": 402\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hazards",
+              "host": ["{{base_url}}"],
+              "path": ["hazards"]
+            }
+          }
+        },
+        {
+          "name": "Get Hazard Details",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards/501",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501"]
+            }
+          }
+        },
+        {
+          "name": "Update Hazard",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Drain Name\",\n  \"description\": \"Caution required\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hazards/501",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501"]
+            }
+          }
+        },
+        {
+          "name": "Delete Hazard",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards/501",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Comments",
+      "item": [
+        {
+          "name": "Get Comments",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards/501/comments",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501", "comments"]
+            }
+          }
+        },
+        {
+          "name": "Add Comment",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Taking detour to avoid this spot\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/hazards/501/comments",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501", "comments"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Likes & Bookmarks",
+      "item": [
+        {
+          "name": "Like / Verify Hazard",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards/501/like",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501", "like"]
+            }
+          }
+        },
+        {
+          "name": "Bookmark Hazard",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/hazards/501/bookmark",
+              "host": ["{{base_url}}"],
+              "path": ["hazards", "501", "bookmark"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Navigation & Safe Route",
+      "item": [
+        {
+          "name": "Get Safest Route",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"origin\": {\n    \"latitude\": 25.18200000,\n    \"longitude\": 75.82800000\n  },\n  \"destination\": {\n    \"latitude\": 25.16600000,\n    \"longitude\": 75.85800000\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/maps/safe-route",
+              "host": ["{{base_url}}"],
+              "path": ["maps", "safe-route"]
+            }
+          }
+        },
+        {
+          "name": "Start Ride Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"route_id\": 1,\n  \"polyline\": \"a~_rF`psbO...\",\n  \"origin_lat\": 25.18200000,\n  \"origin_lng\": 75.82800000,\n  \"dest_lat\": 25.16600000,\n  \"dest_lng\": 75.85800000\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ride/start",
+              "host": ["{{base_url}}"],
+              "path": ["ride", "start"]
+            }
+          }
+        },
+        {
+          "name": "Ping Telemetry",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": 703,\n  \"latitude\": 25.18000000,\n  \"longitude\": 75.83000000,\n  \"speed_kmh\": 32.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ride/share-location",
+              "host": ["{{base_url}}"],
+              "path": ["ride", "share-location"]
+            }
+          }
+        },
+        {
+          "name": "End Ride Session",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"session_id\": 703\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/ride/end",
+              "host": ["{{base_url}}"],
+              "path": ["ride", "end"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Notifications",
+      "item": [
+        {
+          "name": "Get Notifications List",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/notifications",
+              "host": ["{{base_url}}"],
+              "path": ["notifications"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Profile & Settings",
+      "item": [
+        {
+          "name": "Get Profile Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/profile/stats",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "stats"]
+            }
+          }
+        },
+        {
+          "name": "Get Preferences",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "url": {
+              "raw": "{{base_url}}/settings",
+              "host": ["{{base_url}}"],
+              "path": ["settings"]
+            }
+          }
+        },
+        {
+          "name": "Sync Preferences",
+          "request": {
+            "method": "PUT",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" },
+              { "key": "Authorization", "value": "Bearer {{access_token}}" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"language\": \"en\",\n  \"theme\": \"system\",\n  \"notifications\": {\n    \"push_enabled\": true\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/settings",
+              "host": ["{{base_url}}"],
+              "path": ["settings"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,692 @@
+openapi: 3.1.0
+info:
+  title: NagarRakshak API Specification
+  description: Backend API endpoints for the NagarRakshak civic safety platform.
+  version: 1.0.0
+servers:
+  - url: https://api.nagarrakshak.org/api/v1
+    description: Production API Server
+paths:
+  /auth/register:
+    post:
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - email
+                - password
+              properties:
+                name:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                phone_number:
+                  type: string
+                role:
+                  type: string
+                  enum: [citizen, volunteer]
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '422':
+          description: Validation error
+
+  /auth/login:
+    post:
+      summary: Authenticate user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                google_id_token:
+                  type: string
+      responses:
+        '200':
+          description: Authentication successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid credentials
+
+  /auth/logout:
+    post:
+      summary: Invalidate user token
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Logged out successfully
+
+  /auth/refresh:
+    post:
+      summary: Refresh JWT token
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refresh_token
+              properties:
+                refresh_token:
+                  type: string
+      responses:
+        '200':
+          description: Tokens refreshed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TokenRefreshResponse'
+
+  /ai/analyze:
+    post:
+      summary: Analyze image for hazards via Gemini AI
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - image
+              properties:
+                image:
+                  type: string
+                  format: binary
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+      responses:
+        '200':
+          description: AI analysis complete
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AIAnalysisResult'
+
+  /hazards:
+    get:
+      summary: List hazards
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: category_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: severity
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: List of hazards
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HazardObject'
+    post:
+      summary: Create a hazard report
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - category_id
+                - latitude
+                - longitude
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category_id:
+                  type: integer
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                address:
+                  type: string
+                ai_analysis_id:
+                  type: integer
+      responses:
+        '201':
+          description: Hazard created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HazardObject'
+
+  /hazards/{id}:
+    get:
+      summary: Get hazard details
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Hazard details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HazardObject'
+        '404':
+          description: Hazard not found
+
+    put:
+      summary: Update a hazard report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                category_id:
+                  type: integer
+      responses:
+        '200':
+          description: Hazard updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HazardObject'
+
+    delete:
+      summary: Delete a hazard report (Admin only)
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Hazard deleted
+
+  /hazards/{id}/comments:
+    get:
+      summary: Get hazard comments
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: List of comments
+    post:
+      summary: Post a comment
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - content
+              properties:
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Comment created
+
+  /hazards/{id}/like:
+    post:
+      summary: Upvote/verify a hazard report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Upvoted successfully
+    delete:
+      summary: Remove upvote from hazard
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Upvote removed
+
+  /hazards/{id}/bookmark:
+    post:
+      summary: Bookmark a hazard report
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Bookmarked successfully
+    delete:
+      summary: Remove bookmark
+      security:
+        - BearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Bookmark removed
+
+  /maps/safe-route:
+    post:
+      summary: Fetch safest navigation routes
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - origin
+                - destination
+              properties:
+                origin:
+                  $ref: '#/components/schemas/LatLng'
+                destination:
+                  $ref: '#/components/schemas/LatLng'
+      responses:
+        '200':
+          description: List of safe routes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  data:
+                    type: object
+                    properties:
+                      routes:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/RouteObject'
+
+  /ride/start:
+    post:
+      summary: Start a navigation ride session
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - route_id
+                - polyline
+                - origin_lat
+                - origin_lng
+                - dest_lat
+                - dest_lng
+              properties:
+                route_id:
+                  type: integer
+                polyline:
+                  type: string
+                origin_lat:
+                  type: number
+                origin_lng:
+                  type: number
+                dest_lat:
+                  type: number
+                dest_lng:
+                  type: number
+      responses:
+        '200':
+          description: Ride session started
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                  session_id:
+                    type: integer
+                  message:
+                    type: string
+
+  /ride/share-location:
+    post:
+      summary: Ping telemetry coordinates
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+                - latitude
+                - longitude
+              properties:
+                session_id:
+                  type: integer
+                latitude:
+                  type: number
+                longitude:
+                  type: number
+                speed_kmh:
+                  type: number
+      responses:
+        '200':
+          description: Telemetry logged
+
+  /ride/end:
+    post:
+      summary: End nav session
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - session_id
+              properties:
+                session_id:
+                  type: integer
+      responses:
+        '200':
+          description: Session closed
+
+  /notifications:
+    get:
+      summary: Get notifications
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: List of notifications
+
+  /profile/stats:
+    get:
+      summary: Get profile contribution metrics
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: Profile metrics
+
+  /settings:
+    get:
+      summary: Get preferences
+      security:
+        - BearerAuth: []
+      responses:
+        '200':
+          description: App settings
+    put:
+      summary: Update preferences
+      security:
+        - BearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Settings updated
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        data:
+          type: object
+          properties:
+            user:
+              type: object
+              properties:
+                id:
+                  type: integer
+                name:
+                  type: string
+                email:
+                  type: string
+                role:
+                  type: string
+            tokens:
+              type: object
+              properties:
+                access_token:
+                  type: string
+                refresh_token:
+                  type: string
+
+    TokenRefreshResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            access_token:
+              type: string
+            refresh_token:
+              type: string
+
+    LatLng:
+      type: object
+      properties:
+        latitude:
+          type: number
+        longitude:
+          type: number
+
+    AIAnalysisResult:
+      type: object
+      properties:
+        success:
+          type: boolean
+        data:
+          type: object
+          properties:
+            ai_analysis_id:
+              type: integer
+            predicted_category:
+              type: string
+            predicted_severity:
+              type: string
+            confidence_score:
+              type: number
+            generated_summary:
+              type: string
+            petition_draft:
+              type: string
+
+    RouteObject:
+      type: object
+      properties:
+        route_id:
+          type: integer
+        name:
+          type: string
+        polyline:
+          type: string
+        distance_meters:
+          type: integer
+        duration_seconds:
+          type: integer
+        risk_score:
+          type: integer
+        hazards_count:
+          type: integer
+
+    HazardObject:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        description:
+          type: string
+        issue_type:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        severity:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+        status:
+          type: string
+        location:
+          type: object
+          properties:
+            latitude:
+              type: number
+            longitude:
+              type: number
+            address:
+              type: string
+        images:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: integer
+              image_path:
+                type: string
+        reported_by:
+          type: object
+          properties:
+            id:
+              type: integer
+            name:
+              type: string
+            avatar_url:
+              type: string
+        verification_count:
+          type: integer
+        created_at:
+          type: string
+        updated_at:
+          type: string
