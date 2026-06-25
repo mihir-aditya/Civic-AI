@@ -55,7 +55,7 @@ object BackendClient {
                 }
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error fetching hazards from backend: ${e.message}.")
+            Log.e(TAG, "Error fetching hazards from backend: ${e.message}", e)
         }
         return@withContext emptyList()
 
@@ -110,7 +110,7 @@ object BackendClient {
                 return@withContext true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error submitting hazard: ${e.message}")
+            Log.e(TAG, "Error submitting hazard: ${e.message}", e)
         }
         return@withContext false
     }
@@ -131,7 +131,7 @@ object BackendClient {
                 return@withContext true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error verifying hazard: ${e.message}")
+            Log.e(TAG, "Error verifying hazard: ${e.message}", e)
         }
         return@withContext false
     }
@@ -152,7 +152,7 @@ object BackendClient {
                 return@withContext true
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Error resolving hazard: ${e.message}")
+            Log.e(TAG, "Error resolving hazard: ${e.message}", e)
         }
         return@withContext false
     }
