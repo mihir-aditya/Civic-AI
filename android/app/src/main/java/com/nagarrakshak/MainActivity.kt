@@ -114,14 +114,14 @@ fun AppMainScreen() {
                                                 color = if (isSelected) Color(0xFFDCFCE7) else Color.Transparent,
                                                 shape = RoundedCornerShape(16.dp)
                                             )
-                                            .padding(horizontal = 16.dp, vertical = 6.dp),
+                                            .padding(horizontal = 14.dp, vertical = 4.dp),
                                         contentAlignment = Alignment.Center
                                     ) {
                                         Icon(
                                             imageVector = item.icon,
                                             contentDescription = item.screen.title,
                                             tint = if (isSelected) Color(0xFF16A34A) else Color(0xFF64748B),
-                                            modifier = Modifier.size(20.dp)
+                                            modifier = Modifier.size(24.dp)
                                         )
                                     }
                                     Spacer(modifier = Modifier.height(2.dp))
@@ -162,7 +162,7 @@ fun AppMainScreen() {
                                     .background(Color(0xFF16A34A), shape = CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Text("📷", fontSize = 20.sp)
+                                Text("📷", fontSize = 24.sp)
                             }
                         }
                     }
