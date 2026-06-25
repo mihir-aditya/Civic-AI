@@ -30,14 +30,57 @@ fun DetailScreen(
     var hasVerified by remember { mutableStateOf(false) }
 
     // Mock data based on hazardId
-    val title = if (hazardId == "1") "Pothole on Road" else "Open Drain"
-    val category = if (hazardId == "1") "Pothole" else "Open Drain"
-    val location = if (hazardId == "1") "Talwandi, Kota" else "Sector 7, Kota"
-    val severity = if (hazardId == "1") "High Risk" else "Medium Risk"
-    val severityColor = if (hazardId == "1") DangerColor else WarningColor
+    val title = when (hazardId) {
+        "1" -> "Open Drain"
+        "2" -> "Garbage Dump"
+        "3" -> "Water Logging"
+        "4" -> "Broken Street Light"
+        else -> "Open Drain"
+    }
+    val category = when (hazardId) {
+        "1" -> "Open Drain"
+        "2" -> "Garbage"
+        "3" -> "Waterlogging"
+        "4" -> "Broken Streetlight"
+        else -> "Open Drain"
+    }
+    val location = when (hazardId) {
+        "1" -> "Talwandi, Kota"
+        "2" -> "Mahaveer Nagar, Kota"
+        "3" -> "Shrinath Puram, Kota"
+        "4" -> "Vivekananda Nagar, Kota"
+        else -> "Talwandi, Kota"
+    }
+    val severity = when (hazardId) {
+        "1", "3" -> "High Risk"
+        else -> "Medium Risk"
+    }
+    val severityColor = when (hazardId) {
+        "1", "3" -> DangerColor
+        else -> WarningColor
+    }
+    val detailedDescription = when (hazardId) {
+        "1" -> "Uncovered open drain canal causing foul smell, water contamination, and mosquito breeding. Poses high risk to pedestrians and children."
+        "2" -> "Accumulated garbage dump pile blocking part of the street side. Not collected for 3 days, causing bad odor and hygienic concerns."
+        "3" -> "Severe waterlogging on road street after heavy rain, making it difficult for vehicles and two-wheelers to navigate safely."
+        "4" -> "Road streetlight is broken or completely inactive for over a week, leading to dark blindspots and increasing safety risks at night."
+        else -> "Civic hazard reported by citizen. Active monitoring recommended."
+    }
 
-    val hazardLat = if (hazardId == "1") 25.18254 else 25.18421
-    val hazardLng = if (hazardId == "1") 75.82736 else 75.82912
+    val hazardLat = when (hazardId) {
+        "1" -> 25.18254
+        "2" -> 25.18421
+        "3" -> 25.18112
+        "4" -> 25.18556
+        else -> 25.18254
+    }
+    val hazardLng = when (hazardId) {
+        "1" -> 75.82736
+        "2" -> 75.82912
+        "3" -> 75.82512
+        "4" -> 75.82667
+        else -> 75.82736
+    }
 
     Column(
         modifier = Modifier
@@ -158,7 +201,7 @@ fun DetailScreen(
                 )
                 Spacer(modifier = Modifier.height(4.dp))
                 Text(
-                    text = "Large road structural failure causing significant traffic bottlenecks and cyclist instability. Citizen reports recommend immediate municipality escalation.",
+                    text = detailedDescription,
                     style = MaterialTheme.typography.bodyMedium,
                     color = Color.DarkGray
                 )

@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -65,6 +66,7 @@ fun HomeScreen(
     val context = LocalContext.current
     var currentCityName by remember { mutableStateOf("Chandigarh") }
     var userLatLng by remember { mutableStateOf<LatLng?>(null) }
+    var showScoreDialog by remember { mutableStateOf(false) }
 
     val locationPermissionsLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions()
@@ -98,6 +100,29 @@ fun HomeScreen(
         }
     }
 
+    // Safety Score Info Dialog Popup
+    if (showScoreDialog) {
+        AlertDialog(
+            onDismissRequest = { showScoreDialog = false },
+            title = { Text("Area Safety Score", fontWeight = FontWeight.Bold) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("Your area safety score is 82/100, which indicates a Low Risk Zone.", fontWeight = FontWeight.SemiBold, color = Color(0xFF15803D))
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("This real-time safety metric is aggregated from citizen-reported public safety issues within your vicinity.", fontSize = 13.sp, color = Color(0xFF475569))
+                    Text("• Active unresolved hazards: 3 (Low)", fontSize = 12.sp, color = Color(0xFF475569))
+                    Text("• Hazard resolution rate: 94% (High)", fontSize = 12.sp, color = Color(0xFF475569))
+                    Text("• Community safety engagement: Excellent", fontSize = 12.sp, color = Color(0xFF475569))
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showScoreDialog = false }) {
+                    Text("Close", color = Color(0xFF16A34A), fontWeight = FontWeight.Bold)
+                }
+            }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
@@ -112,11 +137,11 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Shield Logo Checkmark
+                // Shield Logo Checkmark in a circle
                 Box(
                     modifier = Modifier
                         .size(44.dp)
-                        .background(Color(0xFF16A34A), shape = RoundedCornerShape(12.dp)),
+                        .background(Color(0xFF16A34A), shape = CircleShape),
                     contentAlignment = Alignment.Center
                 ) {
                     Text("🛡️", fontSize = 24.sp)
@@ -127,7 +152,7 @@ fun HomeScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Good Morning, Citizen",
-                        fontSize = 14.sp,
+                        fontSize = 13.sp,
                         color = Color(0xFF64748B),
                         fontWeight = FontWeight.Medium
                     )
@@ -146,15 +171,31 @@ fun HomeScreen(
                     }
                 }
                 
-                // Action Buttons
+                // Action Buttons Row
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Notification bell with badge
+                    // Safety Score Circle Badge (82)
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(36.dp)
+                            .background(Color(0xFF16A34A), shape = CircleShape)
+                            .clickable { showScoreDialog = true },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "82",
+                            color = Color.White,
+                            fontSize = 14.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    // Notification bell with red badge
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
                             .background(Color.White, shape = CircleShape)
                             .border(1.dp, Color(0xFFE2E8F0), CircleShape)
                             .clickable { },
@@ -163,13 +204,13 @@ fun HomeScreen(
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Notifications",
-                            tint = Color(0xFF64748B),
-                            modifier = Modifier.size(20.dp)
+                            tint = Color(0xFF475569),
+                            modifier = Modifier.size(18.dp)
                         )
                         // Red badge indicator
                         Box(
                             modifier = Modifier
-                                .size(16.dp)
+                                .size(14.dp)
                                 .background(Color(0xFFEF4444), shape = CircleShape)
                                 .align(Alignment.TopEnd)
                                 .offset(x = 2.dp, y = (-2).dp),
@@ -178,24 +219,22 @@ fun HomeScreen(
                             Text(
                                 text = "3",
                                 color = Color.White,
-                                fontSize = 9.sp,
+                                fontSize = 8.sp,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
 
-                    // User Profile image avatar
+                    // Scan/QR Code Corners button
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
-                            .background(Color(0xFFE2E8F0), shape = CircleShape)
-                            .border(1.5.dp, Color(0xFF16A34A), CircleShape),
+                            .size(36.dp)
+                            .background(Color.White, shape = CircleShape)
+                            .border(1.dp, Color(0xFFE2E8F0), CircleShape)
+                            .clickable { },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = "👤",
-                            fontSize = 20.sp
-                        )
+                        ScanIcon()
                     }
                 }
             }
@@ -226,20 +265,22 @@ fun HomeScreen(
                         ) 
                     },
                     modifier = Modifier.weight(1f),
-                    shape = RoundedCornerShape(28.dp),
-                    colors = TextFieldDefaults.outlinedTextFieldColors(
+                    shape = RoundedCornerShape(24.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Color(0xFFE2E8F0),
                         unfocusedBorderColor = Color(0xFFE2E8F0),
-                        focusedBorderColor = PrimaryColor,
-                        containerColor = Color.White
+                        focusedContainerColor = Color.White,
+                        unfocusedContainerColor = Color.White
                     ),
                     singleLine = true
                 )
                 
-                // Voice input microphone circle button
+                // Voice input microphone rounded-box button
                 Box(
                     modifier = Modifier
                         .size(48.dp)
-                        .background(Color(0xFFF1F5F9), shape = CircleShape)
+                        .background(Color.White, shape = RoundedCornerShape(12.dp))
+                        .border(1.dp, Color(0xFFE2E8F0), RoundedCornerShape(12.dp))
                         .clickable { },
                     contentAlignment = Alignment.Center
                 ) {
@@ -248,128 +289,49 @@ fun HomeScreen(
             }
         }
 
-        // 3. Grid Controls (2x2)
+        // 3. Quick Action Cards (1 Row of 4 cards)
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        GridButton(
-                            title = "Report Hazard",
-                            subtitle = "Report Hazards",
-                            iconEmoji = "⚠️",
-                            iconBgColor = Color(0xFFFEE2E2),
-                            onClick = onNavigateToReport
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        GridButton(
-                            title = "Nearby Hazards",
-                            subtitle = "Nearby Hazards",
-                            iconEmoji = "📍",
-                            iconBgColor = Color(0xFFDBEAFE),
-                            onClick = onNavigateToMap
-                        )
-                    }
-                }
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(modifier = Modifier.weight(1f)) {
-                        GridButton(
-                            title = "My Reports",
-                            subtitle = "My Reports",
-                            iconEmoji = "📝",
-                            iconBgColor = Color(0xFFD1FAE5),
-                            onClick = onNavigateToReport
-                        )
-                    }
-                    Box(modifier = Modifier.weight(1f)) {
-                        GridButton(
-                            title = "Emergency Alerts",
-                            subtitle = "Emergency Alerts",
-                            iconEmoji = "🔔",
-                            iconBgColor = Color(0xFFFEF3C7),
-                            onClick = onNavigateToMap
-                        )
-                    }
-                }
-            }
-        }
-
-        // 4. Area Safety Score Card
-        item {
-            Card(
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Color.White),
-                shape = RoundedCornerShape(20.dp),
-                border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text(
-                        text = "Area Safety Score",
-                        fontSize = 14.sp,
-                        fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
-                    )
-                    
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        Text(
-                            text = "82/100",
-                            fontSize = 32.sp,
-                            fontWeight = FontWeight.Black,
-                            color = Color(0xFF16A34A)
-                        )
-                        
-                        // Safety badge status
-                        Box(
-                            modifier = Modifier
-                                .background(Color(0xFFFEF3C7), shape = RoundedCornerShape(12.dp))
-                                .padding(horizontal = 10.dp, vertical = 4.dp)
-                        ) {
-                            Text(
-                                text = "Low Risk Zone",
-                                color = Color(0xFFD97706),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 11.sp
-                            )
-                        }
-
-                        // Trend indicator
-                        Text(
-                            text = "↑ Improving (Last 7 Days)",
-                            color = Color(0xFF16A34A),
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 12.sp
-                        )
-                    }
-                    
-                    Text(
-                        text = "AI-generated safety summary: Area safety is excellent, improved by regular civic reporting and active hazard mitigation.",
-                        fontSize = 12.sp,
-                        color = Color(0xFF64748B),
-                        lineHeight = 16.sp
-                    )
-                }
+                QuickActionCard(
+                    title = "Report Hazard",
+                    iconEmoji = "⚠️",
+                    iconBg = Color(0xFFFEE2E2), // Light red
+                    onClick = onNavigateToReport,
+                    modifier = Modifier.weight(1f)
+                )
+                QuickActionCard(
+                    title = "Nearby Hazards",
+                    iconEmoji = "📍",
+                    iconBg = Color(0xFFDBEAFE), // Light blue
+                    onClick = onNavigateToMap,
+                    modifier = Modifier.weight(1f)
+                )
+                QuickActionCard(
+                    title = "My Reports",
+                    iconEmoji = "📝",
+                    iconBg = Color(0xFFD1FAE5), // Light green
+                    onClick = onNavigateToReport,
+                    modifier = Modifier.weight(1f)
+                )
+                QuickActionCard(
+                    title = "Emergency Alerts",
+                    iconEmoji = "🔔",
+                    iconBg = Color(0xFFFEF3C7), // Light yellow
+                    onClick = onNavigateToMap,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
-        // 5. Live Hazard Map Preview
+        // 4. Live Hazard Map Preview
         item {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text(
                     text = "Live Hazard Map Preview",
-                    fontSize = 16.sp,
+                    fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color(0xFF0F172A)
                 )
@@ -381,166 +343,170 @@ fun HomeScreen(
             }
         }
 
-        // 6. Nearby Alerts Section
+        // 5. Nearby Alerts Section Title
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Nearby Alerts",
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF0F172A)
+                )
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onNavigateToMap() },
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.clickable { onNavigateToMap() }
                 ) {
                     Text(
-                        text = "Nearby Alerts",
-                        fontSize = 16.sp,
+                        text = "View All",
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Bold,
-                        color = Color(0xFF0F172A)
+                        color = Color(0xFF64748B)
                     )
+                    Spacer(modifier = Modifier.width(2.dp))
                     Text(
                         text = "›",
-                        fontSize = 24.sp,
-                        fontWeight = FontWeight.Light,
-                        color = Color(0xFF94A3B8)
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF64748B)
                     )
-                }
-                
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    contentPadding = PaddingValues(vertical = 4.dp)
-                ) {
-                    item {
-                        NearbyAlertCard(
-                            title = "Open Drain",
-                            distance = "120m away",
-                            severity = "High Severity",
-                            severityColor = Color(0xFFEF4444),
-                            severityBgColor = Color(0xFFFEE2E2),
-                            verifiedCount = 23,
-                            timeAgo = "14m ago",
-                            imageEmoji = "🕳️",
-                            onClick = { onNavigateToDetail("1") }
-                        )
-                    }
-                    item {
-                        NearbyAlertCard(
-                            title = "Illegal Garbage",
-                            distance = "350m away",
-                            severity = "Medium Severity",
-                            severityColor = Color(0xFFF59E0B),
-                            severityBgColor = Color(0xFFFEF3C7),
-                            verifiedCount = 11,
-                            timeAgo = "2h ago",
-                            imageEmoji = "🗑️",
-                            onClick = { onNavigateToDetail("2") }
-                        )
-                    }
                 }
             }
         }
 
-        // 7. AI Insights Widget
+        // 6. Nearby Alerts List (4 Vertical cards matching mockup)
         item {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "AI Insights Widget",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF0F172A)
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                NearbyAlertVerticalCard(
+                    title = "Open Drain",
+                    location = "Talwandi, Kota",
+                    description = "Open drain causing foul smell and mosquito issue.",
+                    distance = "120m away",
+                    severity = "High",
+                    severityColor = Color(0xFFEF4444),
+                    severityBg = Color(0xFFFEE2E2),
+                    timeAgo = "2h ago",
+                    imageIllustration = { OpenDrainIllustration() },
+                    onClick = { onNavigateToDetail("1") }
                 )
-                
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = Color(0xFFEFF6FF)),
-                    shape = RoundedCornerShape(16.dp),
-                    border = BorderStroke(1.dp, Color(0xFFDBEAFE))
-                ) {
-                    Row(
-                        modifier = Modifier.padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Brain icon in circle
-                        Box(
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(Color(0xFFDBEAFE), shape = CircleShape),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("🧠", fontSize = 18.sp)
-                        }
-                        
-                        Spacer(modifier = Modifier.width(12.dp))
-                        
-                        Text(
-                            text = "AI Insights: Road potholes increased by 18% this week. Safety recommendation: Report local hazards.",
-                            fontSize = 12.sp,
-                            color = Color(0xFF1E40AF),
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.weight(1f)
-                        )
-                        
-                        Spacer(modifier = Modifier.width(8.dp))
-                        
-                        Text("💬", fontSize = 18.sp)
-                    }
-                }
+
+                NearbyAlertVerticalCard(
+                    title = "Garbage Dump",
+                    location = "Mahaveer Nagar, Kota",
+                    description = "Garbage not collected from 3 days.",
+                    distance = "350m away",
+                    severity = "Medium",
+                    severityColor = Color(0xFFD97706),
+                    severityBg = Color(0xFFFEF3C7),
+                    timeAgo = "5h ago",
+                    imageIllustration = { GarbageDumpIllustration() },
+                    onClick = { onNavigateToDetail("2") }
+                )
+
+                NearbyAlertVerticalCard(
+                    title = "Water Logging",
+                    location = "Shrinath Puram, Kota",
+                    description = "Heavy water logging after rain.",
+                    distance = "450m away",
+                    severity = "High",
+                    severityColor = Color(0xFFEF4444),
+                    severityBg = Color(0xFFFEE2E2),
+                    timeAgo = "6h ago",
+                    imageIllustration = { WaterLoggingIllustration() },
+                    onClick = { onNavigateToDetail("3") }
+                )
+
+                NearbyAlertVerticalCard(
+                    title = "Broken Street Light",
+                    location = "Vivekananda Nagar, Kota",
+                    description = "Street light not working since one week.",
+                    distance = "620m away",
+                    severity = "Medium",
+                    severityColor = Color(0xFFD97706),
+                    severityBg = Color(0xFFFEF3C7),
+                    timeAgo = "1d ago",
+                    imageIllustration = { BrokenStreetLightIllustration() },
+                    onClick = { onNavigateToDetail("4") }
+                )
             }
         }
     }
 }
 
 @Composable
-fun GridButton(
+fun ScanIcon() {
+    Canvas(modifier = Modifier.size(16.dp)) {
+        val stroke = 1.5.dp.toPx()
+        val len = 4.dp.toPx()
+        val color = Color(0xFF475569)
+        
+        // Top-Left corner
+        drawLine(color, Offset(0f, 0f), Offset(len, 0f), strokeWidth = stroke)
+        drawLine(color, Offset(0f, 0f), Offset(0f, len), strokeWidth = stroke)
+        
+        // Top-Right corner
+        drawLine(color, Offset(size.width, 0f), Offset(size.width - len, 0f), strokeWidth = stroke)
+        drawLine(color, Offset(size.width, 0f), Offset(size.width, len), strokeWidth = stroke)
+        
+        // Bottom-Left corner
+        drawLine(color, Offset(0f, size.height), Offset(len, size.height), strokeWidth = stroke)
+        drawLine(color, Offset(0f, size.height), Offset(0f, size.height - len), strokeWidth = stroke)
+        
+        // Bottom-Right corner
+        drawLine(color, Offset(size.width, size.height), Offset(size.width - len, size.height), strokeWidth = stroke)
+        drawLine(color, Offset(size.width, size.height), Offset(size.width, size.height - len), strokeWidth = stroke)
+        
+        // Center scanner dot
+        drawRect(color, Offset(size.width * 0.35f, size.height * 0.35f), size * 0.3f)
+    }
+}
+
+@Composable
+fun QuickActionCard(
     title: String,
-    subtitle: String,
     iconEmoji: String,
-    iconBgColor: Color,
-    onClick: () -> Unit
+    iconBg: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(95.dp)
+        modifier = modifier
+            .height(90.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = Color(0xFF14532D)), // Premium dark forest green background
+        colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(6.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
         ) {
-            // Icon container
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .background(iconBgColor, shape = RoundedCornerShape(10.dp)),
+                    .size(36.dp)
+                    .background(iconBg, shape = RoundedCornerShape(10.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = iconEmoji, fontSize = 20.sp)
+                Text(iconEmoji, fontSize = 18.sp)
             }
-            Spacer(modifier = Modifier.width(10.dp))
-            Column(
-                verticalArrangement = Arrangement.Center
-            ) {
-                Text(
-                    text = title,
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = subtitle,
-                    color = Color.White.copy(alpha = 0.6f),
-                    fontSize = 10.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            Spacer(modifier = Modifier.height(6.dp))
+            Text(
+                text = title,
+                color = Color(0xFF334155),
+                fontWeight = FontWeight.Bold,
+                fontSize = 10.sp,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                lineHeight = 12.sp
+            )
         }
     }
 }
@@ -553,20 +519,20 @@ fun MapPreviewWidget(
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(200.dp),
-        shape = RoundedCornerShape(20.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            .height(180.dp),
+        shape = RoundedCornerShape(16.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             val center = userLatLng ?: LatLng(25.18254, 75.82736) // Fallback to Kota
             val cameraPositionState = rememberCameraPositionState {
-                position = CameraPosition.fromLatLngZoom(center, 13f)
+                position = CameraPosition.fromLatLngZoom(center, 14f)
             }
 
             LaunchedEffect(userLatLng) {
                 if (userLatLng != null) {
-                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 13f)
+                    cameraPositionState.position = CameraPosition.fromLatLngZoom(userLatLng, 14f)
                 }
             }
 
@@ -579,19 +545,19 @@ fun MapPreviewWidget(
                     myLocationButtonEnabled = false
                 )
             ) {
-                val offset1 = LatLng(center.latitude + 0.003, center.longitude + 0.002)
-                val offset2 = LatLng(center.latitude - 0.002, center.longitude - 0.003)
+                val offset1 = LatLng(center.latitude + 0.002, center.longitude + 0.001)
+                val offset2 = LatLng(center.latitude - 0.001, center.longitude - 0.002)
                 Marker(
                     state = MarkerState(position = offset1),
-                    title = "Pothole detected"
+                    title = "Open Drain"
                 )
                 Marker(
                     state = MarkerState(position = offset2),
-                    title = "Open Drain reported"
+                    title = "Garbage Dump"
                 )
             }
 
-            // OPEN FULL MAP button (bottom center)
+            // Centered dark-green button OPEN FULL MAP
             Button(
                 onClick = onOpenFullMap,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF14532D)),
@@ -614,25 +580,25 @@ fun MapPreviewWidget(
 }
 
 @Composable
-fun NearbyAlertCard(
+fun NearbyAlertVerticalCard(
     title: String,
+    location: String,
+    description: String,
     distance: String,
     severity: String,
     severityColor: Color,
-    severityBgColor: Color,
-    verifiedCount: Int,
+    severityBg: Color,
     timeAgo: String,
-    imageEmoji: String,
+    imageIllustration: @Composable () -> Unit,
     onClick: () -> Unit
 ) {
     Card(
         modifier = Modifier
-            .width(260.dp)
+            .fillMaxWidth()
             .clickable { onClick() },
         colors = CardDefaults.cardColors(containerColor = Color.White),
         shape = RoundedCornerShape(16.dp),
-        border = BorderStroke(1.dp, Color(0xFFF1F5F9)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        border = BorderStroke(1.dp, Color(0xFFE2E8F0))
     ) {
         Row(
             modifier = Modifier
@@ -640,40 +606,88 @@ fun NearbyAlertCard(
                 .padding(10.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Hazard visual placeholder
+            // Rounded photo/illustration container on the left
             Box(
                 modifier = Modifier
-                    .size(64.dp)
-                    .background(Color(0xFFF1F5F9), shape = RoundedCornerShape(12.dp)),
+                    .size(80.dp)
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(Color(0xFFF1F5F9)),
                 contentAlignment = Alignment.Center
             ) {
-                Text(imageEmoji, fontSize = 28.sp)
+                imageIllustration()
             }
+            
             Spacer(modifier = Modifier.width(12.dp))
+            
+            // Middle details
             Column(
                 modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp)
+                verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 Text(
                     text = title,
                     fontWeight = FontWeight.Bold,
-                    fontSize = 13.sp,
-                    color = Color(0xFF0F172A),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                Text(
-                    text = distance,
-                    fontSize = 11.sp,
-                    color = Color(0xFF64748B)
+                    fontSize = 14.sp,
+                    color = Color(0xFF0F172A)
                 )
                 
-                // Severity Badge
+                Row(
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text("📍", fontSize = 10.sp)
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = location,
+                        fontSize = 11.sp,
+                        color = Color(0xFF64748B),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+                
+                Text(
+                    text = description,
+                    fontSize = 12.sp,
+                    color = Color(0xFF64748B),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            
+            Spacer(modifier = Modifier.width(8.dp))
+            
+            // Right side distance & severity metrics
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.height(76.dp)
+            ) {
+                // Distance badge
                 Box(
                     modifier = Modifier
-                        .background(severityBgColor, shape = RoundedCornerShape(4.dp))
+                        .background(Color(0xFFF0FDF4), shape = RoundedCornerShape(6.dp))
                         .padding(horizontal = 6.dp, vertical = 2.dp)
                 ) {
+                    Text(
+                        text = distance,
+                        color = Color(0xFF16A34A),
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 9.sp
+                    )
+                }
+                
+                // Severity badge with color circle dot indicator
+                Row(
+                    modifier = Modifier
+                        .background(severityBg, shape = RoundedCornerShape(6.dp))
+                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(6.dp)
+                            .background(severityColor, shape = CircleShape)
+                    )
                     Text(
                         text = severity,
                         color = severityColor,
@@ -682,31 +696,64 @@ fun NearbyAlertCard(
                     )
                 }
                 
-                Spacer(modifier = Modifier.height(2.dp))
-                
-                // Bottom details row
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text("👥", fontSize = 10.sp)
-                        Spacer(modifier = Modifier.width(2.dp))
-                        Text(
-                            text = "$verifiedCount Verified",
-                            fontSize = 10.sp,
-                            color = Color(0xFF64748B)
-                        )
-                    }
-                    Text(
-                        text = timeAgo,
-                        fontSize = 10.sp,
-                        color = Color(0xFF94A3B8)
-                    )
-                }
+                // Time
+                Text(
+                    text = timeAgo,
+                    fontSize = 10.sp,
+                    color = Color(0xFF94A3B8)
+                )
             }
         }
+    }
+}
+
+@Composable
+fun OpenDrainIllustration() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawRect(Color(0xFFCBD5E1))
+        val wallWidth = size.width * 0.2f
+        drawRect(Color(0xFF94A3B8), size = size.copy(width = wallWidth))
+        drawRect(Color(0xFF94A3B8), topLeft = Offset(size.width - wallWidth, 0f), size = size.copy(width = wallWidth))
+        drawRect(Color(0xFF334155), topLeft = Offset(wallWidth, 0f), size = size.copy(width = size.width - 2 * wallWidth))
+        drawRect(Color(0xFF4D7C0F), topLeft = Offset(wallWidth, size.height * 0.3f), size = size.copy(width = size.width - 2 * wallWidth, height = size.height * 0.7f))
+        drawCircle(Color(0xFFEF4444), radius = 4.dp.toPx(), center = Offset(size.width * 0.45f, size.height * 0.5f))
+        drawCircle(Color(0xFFF59E0B), radius = 3.dp.toPx(), center = Offset(size.width * 0.6f, size.height * 0.7f))
+    }
+}
+
+@Composable
+fun GarbageDumpIllustration() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawRect(Color(0xFFE2E8F0))
+        drawCircle(Color(0xFF475569), radius = 16.dp.toPx(), center = Offset(size.width * 0.35f, size.height * 0.65f))
+        drawCircle(Color(0xFF334155), radius = 18.dp.toPx(), center = Offset(size.width * 0.6f, size.height * 0.7f))
+        drawCircle(Color(0xFF1E293B), radius = 14.dp.toPx(), center = Offset(size.width * 0.48f, size.height * 0.75f))
+        drawRect(Color(0xFFEF4444), topLeft = Offset(size.width * 0.2f, size.height * 0.8f), size = size.copy(width = 8.dp.toPx(), height = 6.dp.toPx()))
+        drawCircle(Color(0xFF3B82F6), radius = 3.dp.toPx(), center = Offset(size.width * 0.75f, size.height * 0.8f))
+    }
+}
+
+@Composable
+fun WaterLoggingIllustration() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawRect(Color(0xFF93C5FD))
+        drawRect(Color(0xFF64748B), size = size.copy(height = size.height * 0.3f))
+        drawRect(Color(0xFF1D4ED8), topLeft = Offset(0f, size.height * 0.3f), size = size.copy(height = size.height * 0.7f))
+        val stroke = 1.5.dp.toPx()
+        drawLine(Color.White, Offset(size.width * 0.2f, size.height * 0.5f), Offset(size.width * 0.5f, size.height * 0.5f), strokeWidth = stroke)
+        drawLine(Color.White, Offset(size.width * 0.4f, size.height * 0.7f), Offset(size.width * 0.8f, size.height * 0.7f), strokeWidth = stroke)
+    }
+}
+
+@Composable
+fun BrokenStreetLightIllustration() {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        drawRect(Color(0xFF0F172A))
+        drawLine(Color(0xFF64748B), Offset(size.width * 0.3f, size.height), Offset(size.width * 0.3f, size.height * 0.2f), strokeWidth = 3.dp.toPx())
+        drawLine(Color(0xFF64748B), Offset(size.width * 0.3f, size.height * 0.2f), Offset(size.width * 0.6f, size.height * 0.2f), strokeWidth = 2.dp.toPx())
+        drawRect(Color(0xFF475569), topLeft = Offset(size.width * 0.55f, size.height * 0.18f), size = size.copy(width = 12.dp.toPx(), height = 6.dp.toPx()))
+        drawCircle(Color(0xFFEF4444), radius = 6.dp.toPx(), center = Offset(size.width * 0.6f, size.height * 0.5f))
+        drawLine(Color(0xFFEF4444), Offset(size.width * 0.6f, size.height * 0.35f), Offset(size.width * 0.6f, size.height * 0.45f), strokeWidth = 2.dp.toPx())
     }
 }
 
